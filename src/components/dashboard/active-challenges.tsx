@@ -16,8 +16,8 @@ interface Player {
 
 interface Challenge {
   id: string;
-  challenger: Player;
-  challenged: Player;
+  challenger?: Player;
+  challenged?: Player;
   status: "pending" | "accepted" | "declined" | "completed" | "expired";
   message?: string | null;
   createdAt: Date;
@@ -41,10 +41,10 @@ export function ActiveChallenges({
 }: ActiveChallengesProps) {
   const pendingChallenges = challenges.filter((c) => c.status === "pending");
   const incomingChallenges = pendingChallenges.filter(
-    (c) => c.challenged.id === currentPlayerId
+    (c) => c.challenged?.id === currentPlayerId
   );
   const outgoingChallenges = pendingChallenges.filter(
-    (c) => c.challenger.id === currentPlayerId
+    (c) => c.challenger?.id === currentPlayerId
   );
 
   if (pendingChallenges.length === 0) {
@@ -79,16 +79,16 @@ export function ActiveChallenges({
           >
             <div className="flex items-center gap-4">
               <Avatar className="h-10 w-10 border border-[#262626]">
-                <AvatarImage src={challenge.challenger.avatarUrl || undefined} />
+                <AvatarImage src={challenge.challenger?.avatarUrl || undefined} />
                 <AvatarFallback className="bg-[#1a1a1a]">
-                  {challenge.challenger.displayName.charAt(0)}
+                  {challenge.challenger?.displayName.charAt(0)}
                 </AvatarFallback>
               </Avatar>
               <div>
                 <p className="text-sm font-medium text-white">
-                  {challenge.challenger.displayName}
+                  {challenge.challenger?.displayName}
                   <span className="ml-2 font-mono text-xs text-[#525252]">
-                    {challenge.challenger.elo}
+                    {challenge.challenger?.elo}
                   </span>
                 </p>
                 <p className="text-xs text-[#525252]">
@@ -133,16 +133,16 @@ export function ActiveChallenges({
           >
             <div className="flex items-center gap-4">
               <Avatar className="h-10 w-10 border border-[#262626]">
-                <AvatarImage src={challenge.challenged.avatarUrl || undefined} />
+                <AvatarImage src={challenge.challenged?.avatarUrl || undefined} />
                 <AvatarFallback className="bg-[#1a1a1a]">
-                  {challenge.challenged.displayName.charAt(0)}
+                  {challenge.challenged?.displayName.charAt(0)}
                 </AvatarFallback>
               </Avatar>
               <div>
                 <p className="text-sm font-medium text-white">
-                  {challenge.challenged.displayName}
+                  {challenge.challenged?.displayName}
                   <span className="ml-2 font-mono text-xs text-[#525252]">
-                    {challenge.challenged.elo}
+                    {challenge.challenged?.elo}
                   </span>
                 </p>
                 <div className="flex items-center gap-2 text-xs text-[#525252]">

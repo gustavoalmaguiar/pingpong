@@ -89,6 +89,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   events: {
     async createUser({ user }) {
+      if (!user.id) return;
+
       // Set admin status for new users
       if (user.email && adminEmails.includes(user.email.toLowerCase())) {
         await db

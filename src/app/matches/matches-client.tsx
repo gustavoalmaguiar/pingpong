@@ -25,8 +25,8 @@ interface Match {
   playedAt: Date;
   winner?: Player;
   loser?: Player;
-  winnerTeam?: [Player, Player];
-  loserTeam?: [Player, Player];
+  winnerTeam?: Player[];
+  loserTeam?: Player[];
 }
 
 type FilterOption = "all" | "singles" | "doubles";
@@ -265,7 +265,7 @@ function TeamBadge({
   players,
   isWinner,
 }: {
-  players: [Player, Player];
+  players: Player[];
   isWinner: boolean;
 }) {
   return (

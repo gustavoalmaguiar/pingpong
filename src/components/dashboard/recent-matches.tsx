@@ -13,29 +13,18 @@ interface Player {
   avatarUrl?: string | null;
 }
 
-interface SinglesMatch {
+interface Match {
   id: string;
-  type: "singles";
-  winner: Player;
-  loser: Player;
+  type: "singles" | "doubles";
+  winner?: Player;
+  loser?: Player;
+  winnerTeam?: Player[];
+  loserTeam?: Player[];
   winnerScore: number;
   loserScore: number;
   eloChange: number;
   playedAt: Date;
 }
-
-interface DoublesMatch {
-  id: string;
-  type: "doubles";
-  winnerTeam: [Player, Player];
-  loserTeam: [Player, Player];
-  winnerScore: number;
-  loserScore: number;
-  eloChange: number;
-  playedAt: Date;
-}
-
-type Match = SinglesMatch | DoublesMatch;
 
 interface RecentMatchesProps {
   matches: Match[];
@@ -103,11 +92,11 @@ function SinglesMatchRow({
   match,
   currentPlayerId,
 }: {
-  match: SinglesMatch;
+  match: Match;
   currentPlayerId?: string;
 }) {
-  const isWinner = match.winner.id === currentPlayerId;
-  const isLoser = match.loser.id === currentPlayerId;
+  const isWinner = match.winner?.id === currentPlayerId;
+  const isLoser = match.loser?.id === currentPlayerId;
   const isInvolved = isWinner || isLoser;
 
   return (
@@ -122,16 +111,16 @@ function SinglesMatchRow({
         {/* Winner */}
         <div className="flex items-center gap-2 min-w-0">
           <Avatar className="h-6 w-6 border border-[#262626]">
-            <AvatarImage src={match.winner.avatarUrl || undefined} />
+            <AvatarImage src={match.winner?.avatarUrl || undefined} />
             <AvatarFallback className="bg-[#1a1a1a] text-[10px]">
-              {match.winner.displayName.charAt(0)}
+              {match.winner?.displayName.charAt(0)}
             </AvatarFallback>
           </Avatar>
           <span className={cn(
             "truncate text-sm",
             isWinner ? "font-medium text-emerald-500" : "text-[#a3a3a3]"
           )}>
-            {match.winner.displayName}
+            {match.winner?.displayName}
           </span>
         </div>
 
@@ -145,16 +134,16 @@ function SinglesMatchRow({
         {/* Loser */}
         <div className="flex items-center gap-2 min-w-0">
           <Avatar className="h-6 w-6 border border-[#262626]">
-            <AvatarImage src={match.loser.avatarUrl || undefined} />
+            <AvatarImage src={match.loser?.avatarUrl || undefined} />
             <AvatarFallback className="bg-[#1a1a1a] text-[10px]">
-              {match.loser.displayName.charAt(0)}
+              {match.loser?.displayName.charAt(0)}
             </AvatarFallback>
           </Avatar>
           <span className={cn(
             "truncate text-sm",
             isLoser ? "font-medium text-red-500" : "text-[#525252]"
           )}>
-            {match.loser.displayName}
+            {match.loser?.displayName}
           </span>
         </div>
       </div>
@@ -186,11 +175,11 @@ function DoublesMatchRow({
   match,
   currentPlayerId,
 }: {
-  match: DoublesMatch;
+  match: Match;
   currentPlayerId?: string;
 }) {
-  const isWinner = match.winnerTeam.some((p) => p.id === currentPlayerId);
-  const isLoser = match.loserTeam.some((p) => p.id === currentPlayerId);
+  const isWinner = match.winnerTeam?.some((p) => p.id === currentPlayerId) ?? false;
+  const isLoser = match.loserTeam?.some((p) => p.id === currentPlayerId) ?? false;
   const isInvolved = isWinner || isLoser;
 
   return (
@@ -205,7 +194,7 @@ function DoublesMatchRow({
         {/* Winner Team */}
         <div className="flex items-center">
           <div className="flex -space-x-2">
-            {match.winnerTeam.map((player) => (
+            {(match.winnerTeam ?? []).map((player) => (
               <Avatar key={player.id} className="h-6 w-6 border-2 border-[#0a0a0a]">
                 <AvatarImage src={player.avatarUrl || undefined} />
                 <AvatarFallback className="bg-[#1a1a1a] text-[10px]">
@@ -226,7 +215,7 @@ function DoublesMatchRow({
         {/* Loser Team */}
         <div className="flex items-center">
           <div className="flex -space-x-2">
-            {match.loserTeam.map((player) => (
+            {(match.loserTeam ?? []).map((player) => (
               <Avatar key={player.id} className="h-6 w-6 border-2 border-[#0a0a0a]">
                 <AvatarImage src={player.avatarUrl || undefined} />
                 <AvatarFallback className="bg-[#1a1a1a] text-[10px]">
