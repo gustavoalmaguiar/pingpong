@@ -1,11 +1,14 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Clock, Users, User, ChevronRight } from "lucide-react";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Clock, Users, User, ChevronRight, ChevronDown, Pencil } from "lucide-react";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { TournamentBadge } from "@/components/ui/tournament-badge";
+import { LoggedByIndicator } from "@/components/match/logged-by-indicator";
 import { cn } from "@/lib/utils";
-import { formatDistanceToNow } from "@/lib/format";
+import { formatDistanceToNow, formatFullDate } from "@/lib/format";
 
 interface Player {
   id: string;
@@ -24,6 +27,13 @@ interface Match {
   loserScore: number;
   eloChange: number;
   playedAt: Date;
+  createdAt: Date;
+  tournamentMatchId?: string | null;
+  loggedByUser?: {
+    id: string;
+    name: string | null;
+    image: string | null;
+  } | null;
 }
 
 interface RecentMatchesProps {
@@ -32,6 +42,12 @@ interface RecentMatchesProps {
 }
 
 export function RecentMatches({ matches, currentPlayerId }: RecentMatchesProps) {
+  const [expandedMatchId, setExpandedMatchId] = useState<string | null>(null);
+
+  const toggleExpanded = (matchId: string) => {
+    setExpandedMatchId((prev) => (prev === matchId ? null : matchId));
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -62,19 +78,32 @@ export function RecentMatches({ matches, currentPlayerId }: RecentMatchesProps) 
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.3, delay: 0.15 + index * 0.03 }}
-            className="group px-5 py-3 transition-colors hover:bg-[#111]"
           >
-            {match.type === "singles" ? (
-              <SinglesMatchRow
-                match={match}
-                currentPlayerId={currentPlayerId}
-              />
-            ) : (
-              <DoublesMatchRow
-                match={match}
-                currentPlayerId={currentPlayerId}
-              />
-            )}
+            <div
+              onClick={() => toggleExpanded(match.id)}
+              className="group cursor-pointer px-5 py-3 transition-colors hover:bg-[#111]"
+            >
+              {match.type === "singles" ? (
+                <SinglesMatchRow
+                  match={match}
+                  currentPlayerId={currentPlayerId}
+                  isExpanded={expandedMatchId === match.id}
+                />
+              ) : (
+                <DoublesMatchRow
+                  match={match}
+                  currentPlayerId={currentPlayerId}
+                  isExpanded={expandedMatchId === match.id}
+                />
+              )}
+            </div>
+
+            {/* Expandable Details Panel */}
+            <AnimatePresence>
+              {expandedMatchId === match.id && (
+                <MatchDetailsPanel match={match} />
+              )}
+            </AnimatePresence>
           </motion.div>
         ))}
 
@@ -91,9 +120,11 @@ export function RecentMatches({ matches, currentPlayerId }: RecentMatchesProps) 
 function SinglesMatchRow({
   match,
   currentPlayerId,
+  isExpanded,
 }: {
   match: Match;
   currentPlayerId?: string;
+  isExpanded: boolean;
 }) {
   const isWinner = match.winner?.id === currentPlayerId;
   const isLoser = match.loser?.id === currentPlayerId;
@@ -105,6 +136,11 @@ function SinglesMatchRow({
       <div className="flex h-6 w-6 items-center justify-center rounded bg-[#1a1a1a]">
         <User className="h-3 w-3 text-[#525252]" />
       </div>
+
+      {/* Tournament badge */}
+      {match.tournamentMatchId && (
+        <TournamentBadge iconOnly className="flex-shrink-0" />
+      )}
 
       {/* Match info */}
       <div className="flex flex-1 items-center gap-2 min-w-0">
@@ -162,10 +198,21 @@ function SinglesMatchRow({
           {isWinner ? "+" : isLoser ? "-" : "±"}{match.eloChange}
         </span>
 
+        {/* Logged by indicator */}
+        <LoggedByIndicator user={match.loggedByUser ?? null} size="sm" />
+
         {/* Time */}
         <span className="text-[10px] text-[#525252]">
           {formatDistanceToNow(match.playedAt)}
         </span>
+
+        {/* Expand indicator */}
+        <ChevronDown
+          className={cn(
+            "h-3 w-3 text-[#525252] transition-transform duration-200",
+            isExpanded && "rotate-180"
+          )}
+        />
       </div>
     </div>
   );
@@ -174,9 +221,11 @@ function SinglesMatchRow({
 function DoublesMatchRow({
   match,
   currentPlayerId,
+  isExpanded,
 }: {
   match: Match;
   currentPlayerId?: string;
+  isExpanded: boolean;
 }) {
   const isWinner = match.winnerTeam?.some((p) => p.id === currentPlayerId) ?? false;
   const isLoser = match.loserTeam?.some((p) => p.id === currentPlayerId) ?? false;
@@ -188,6 +237,11 @@ function DoublesMatchRow({
       <div className="flex h-6 w-6 items-center justify-center rounded bg-[#1a1a1a]">
         <Users className="h-3 w-3 text-[#525252]" />
       </div>
+
+      {/* Tournament badge */}
+      {match.tournamentMatchId && (
+        <TournamentBadge iconOnly className="flex-shrink-0" />
+      )}
 
       {/* Match info */}
       <div className="flex flex-1 items-center gap-2 min-w-0">
@@ -239,10 +293,60 @@ function DoublesMatchRow({
         )}>
           {isWinner ? "+" : isLoser ? "-" : "±"}{match.eloChange}
         </span>
+
+        {/* Logged by indicator */}
+        <LoggedByIndicator user={match.loggedByUser ?? null} size="sm" />
+
         <span className="text-[10px] text-[#525252]">
           {formatDistanceToNow(match.playedAt)}
         </span>
+
+        {/* Expand indicator */}
+        <ChevronDown
+          className={cn(
+            "h-3 w-3 text-[#525252] transition-transform duration-200",
+            isExpanded && "rotate-180"
+          )}
+        />
       </div>
     </div>
+  );
+}
+
+function MatchDetailsPanel({ match }: { match: Match }) {
+  return (
+    <motion.div
+      initial={{ height: 0, opacity: 0 }}
+      animate={{ height: "auto", opacity: 1 }}
+      exit={{ height: 0, opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="overflow-hidden"
+    >
+      <div className="border-t border-[#1a1a1a]/50 bg-[#0d0d0d] px-5 py-3">
+        <div className="flex items-center gap-2 text-xs">
+          <Pencil className="h-3 w-3 text-[#525252]" />
+          <span className="text-[#525252]">Logged by</span>
+          {match.loggedByUser ? (
+            <div className="flex items-center gap-2">
+              <Avatar className="h-4 w-4 ring-1 ring-neutral-700/50">
+                <AvatarImage src={match.loggedByUser.image || undefined} />
+                <AvatarFallback className="bg-neutral-800 text-[8px]">
+                  {match.loggedByUser.name?.charAt(0) || "?"}
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-[#a3a3a3]">
+                {match.loggedByUser.name || "Unknown"}
+              </span>
+            </div>
+          ) : (
+            <span className="text-[#a3a3a3]">Unknown user</span>
+          )}
+          <span className="text-[#525252]">on</span>
+          <span className="text-[#a3a3a3]">
+            {formatFullDate(match.createdAt)}
+          </span>
+        </div>
+      </div>
+    </motion.div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import {
   Trophy,
@@ -8,22 +8,19 @@ import {
   Flame,
   Zap,
   TrendingUp,
-  Swords,
   User,
   Users,
   ChevronRight,
   Edit3,
-  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { TournamentBadge } from "@/components/ui/tournament-badge";
 import { cn } from "@/lib/utils";
 import { xpToNextLevel, getLevelTier } from "@/lib/xp";
 import { formatDistanceToNow } from "@/lib/format";
 import { EditProfileModal } from "@/components/profile/edit-profile-modal";
-import { createChallenge } from "@/actions/challenges";
-import { toast } from "sonner";
 
 interface Player {
   id: string;
@@ -37,6 +34,11 @@ interface Player {
   bestStreak: number;
   avatarUrl: string | null;
   createdAt: Date;
+  // Tournament stats
+  tournamentMatchesPlayed: number;
+  tournamentMatchesWon: number;
+  tournamentsPlayed: number;
+  tournamentsWon: number;
 }
 
 interface Match {
@@ -52,7 +54,10 @@ interface Match {
   loserScore: number;
   eloChange: number;
   playedAt: Date;
+  tournamentMatchId: string | null;
 }
+
+type MatchFilter = "all" | "regular" | "tournament";
 
 interface HeadToHeadRecord {
   wins: number;
@@ -90,7 +95,6 @@ interface PlayerProfileClientProps {
   matches: Match[];
   headToHeadRecords: HeadToHeadRecord[];
   isOwnProfile: boolean;
-  currentPlayerId?: string;
   achievements: PlayerAchievement[];
   allAchievements: Achievement[];
 }
@@ -102,29 +106,20 @@ export function PlayerProfileClient({
   matches,
   headToHeadRecords,
   isOwnProfile,
-  currentPlayerId,
   achievements,
   allAchievements,
 }: PlayerProfileClientProps) {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [matchFilter, setMatchFilter] = useState<MatchFilter>("all");
   const { progress, xpInCurrentLevel, xpNeededForNext } = xpToNextLevel(player.xp);
 
-  const handleChallenge = () => {
-    if (!currentPlayerId) {
-      toast.error("You need to be logged in to challenge");
-      return;
-    }
+  // Filter matches based on selected filter
+  const filteredMatches = matches.filter((match) => {
+    if (matchFilter === "all") return true;
+    if (matchFilter === "tournament") return !!match.tournamentMatchId;
+    return !match.tournamentMatchId;
+  });
 
-    startTransition(async () => {
-      try {
-        await createChallenge(player.id);
-        toast.success(`Challenge sent to ${player.displayName}!`);
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Failed to send challenge");
-      }
-    });
-  };
   const levelTier = getLevelTier(player.level);
   const winRate = player.matchesPlayed > 0
     ? Math.round((player.matchesWon / player.matchesPlayed) * 100)
@@ -230,12 +225,12 @@ export function PlayerProfileClient({
             </div>
 
             {/* Action Button */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.25 }}
-            >
-              {isOwnProfile ? (
+            {isOwnProfile && (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.25 }}
+              >
                 <Button
                   variant="outline"
                   onClick={() => setIsEditModalOpen(true)}
@@ -244,21 +239,8 @@ export function PlayerProfileClient({
                   <Edit3 className="mr-2 h-4 w-4" />
                   Edit Profile
                 </Button>
-              ) : (
-                <Button
-                  className="bg-white text-black hover:bg-[#e5e5e5]"
-                  onClick={handleChallenge}
-                  disabled={isPending}
-                >
-                  {isPending ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Swords className="mr-2 h-4 w-4" />
-                  )}
-                  {isPending ? "Sending..." : "Challenge"}
-                </Button>
-              )}
-            </motion.div>
+              </motion.div>
+            )}
           </div>
         </motion.div>
 
@@ -296,6 +278,57 @@ export function PlayerProfileClient({
           ))}
         </motion.div>
 
+        {/* Tournament Stats Section */}
+        {(player.tournamentsPlayed > 0 || player.tournamentMatchesPlayed > 0) && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="overflow-hidden rounded-xl border border-[#1a1a1a] bg-[#0a0a0a]"
+          >
+            <div className="flex items-center gap-2 border-b border-[#1a1a1a] px-5 py-4">
+              <Trophy className="h-4 w-4 text-violet-400" />
+              <h2 className="text-sm font-medium tracking-wide">Tournament Stats</h2>
+            </div>
+            <div className="grid grid-cols-2 gap-4 p-5 md:grid-cols-4">
+              <div>
+                <div className="text-[10px] font-medium uppercase tracking-[0.15em] text-[#525252]">
+                  Tournaments
+                </div>
+                <p className="mt-1 font-mono text-2xl font-bold text-white">
+                  {player.tournamentsPlayed}
+                </p>
+              </div>
+              <div>
+                <div className="text-[10px] font-medium uppercase tracking-[0.15em] text-[#525252]">
+                  Championships
+                </div>
+                <p className="mt-1 font-mono text-2xl font-bold text-violet-400">
+                  {player.tournamentsWon}
+                </p>
+              </div>
+              <div>
+                <div className="text-[10px] font-medium uppercase tracking-[0.15em] text-[#525252]">
+                  Tournament Wins
+                </div>
+                <p className="mt-1 font-mono text-2xl font-bold text-emerald-500">
+                  {player.tournamentMatchesWon}
+                </p>
+              </div>
+              <div>
+                <div className="text-[10px] font-medium uppercase tracking-[0.15em] text-[#525252]">
+                  Tournament W/R
+                </div>
+                <p className="mt-1 font-mono text-2xl font-bold text-white">
+                  {player.tournamentMatchesPlayed > 0
+                    ? Math.round((player.tournamentMatchesWon / player.tournamentMatchesPlayed) * 100)
+                    : 0}%
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
           {/* Match History */}
           <motion.div
@@ -304,11 +337,27 @@ export function PlayerProfileClient({
             transition={{ delay: 0.2 }}
             className="overflow-hidden rounded-xl border border-[#1a1a1a] bg-[#0a0a0a]"
           >
-            <div className="border-b border-[#1a1a1a] px-5 py-4">
+            <div className="flex items-center justify-between border-b border-[#1a1a1a] px-5 py-4">
               <h2 className="text-sm font-medium tracking-wide">Match History</h2>
+              <div className="flex items-center gap-1 rounded-lg bg-[#1a1a1a] p-1">
+                {(["all", "regular", "tournament"] as const).map((filter) => (
+                  <button
+                    key={filter}
+                    onClick={() => setMatchFilter(filter)}
+                    className={cn(
+                      "rounded-md px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider transition-colors",
+                      matchFilter === filter
+                        ? "bg-white text-black"
+                        : "text-[#525252] hover:text-white"
+                    )}
+                  >
+                    {filter}
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="divide-y divide-[#1a1a1a]/50">
-              {matches.slice(0, 10).map((match, index) => {
+              {filteredMatches.slice(0, 10).map((match, index) => {
                 const isWinner = match.type === "singles"
                   ? match.winnerId === player.id
                   : match.winnerTeamP1 === player.id || match.winnerTeamP2 === player.id;
@@ -342,6 +391,11 @@ export function PlayerProfileClient({
                       )}
                     </div>
 
+                    {/* Tournament badge */}
+                    {match.tournamentMatchId && (
+                      <TournamentBadge iconOnly className="flex-shrink-0" />
+                    )}
+
                     {/* Score */}
                     <div className="flex-1">
                       <div className="font-mono text-sm">
@@ -373,9 +427,11 @@ export function PlayerProfileClient({
                 );
               })}
 
-              {matches.length === 0 && (
+              {filteredMatches.length === 0 && (
                 <div className="px-5 py-12 text-center text-sm text-[#525252]">
-                  No matches yet
+                  {matchFilter === "all"
+                    ? "No matches yet"
+                    : `No ${matchFilter} matches yet`}
                 </div>
               )}
             </div>

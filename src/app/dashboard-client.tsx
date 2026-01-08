@@ -5,11 +5,11 @@ import {
   QuickStats,
   LeaderboardCard,
   RecentMatches,
-  ActiveChallenges,
   TipsCard,
   HotStreaks,
   RecentAchievements,
   HeadToHead,
+  UpcomingTournament,
 } from "@/components/dashboard";
 import type { Player } from "@/lib/db/schema";
 
@@ -42,6 +42,13 @@ interface Match {
   loserScore: number;
   eloChange: number;
   playedAt: Date;
+  createdAt: Date;
+  tournamentMatchId?: string | null;
+  loggedByUser?: {
+    id: string;
+    name: string | null;
+    image: string | null;
+  } | null;
 }
 
 interface CurrentPlayer {
@@ -55,16 +62,6 @@ interface CurrentPlayer {
   currentStreak: number;
   bestStreak: number;
   avatarUrl: string | null;
-}
-
-interface Challenge {
-  id: string;
-  challenger?: MatchPlayer & { elo: number };
-  challenged?: MatchPlayer & { elo: number };
-  status: "pending" | "accepted" | "declined" | "completed" | "expired";
-  message?: string | null;
-  createdAt: Date;
-  expiresAt: Date;
 }
 
 interface HotStreakPlayer {
@@ -100,6 +97,25 @@ interface HeadToHeadRecord {
   lastMatch: Date;
 }
 
+interface UpcomingTournamentData {
+  id: string;
+  name: string;
+  format: "single_elimination" | "double_elimination" | "swiss" | "round_robin_knockout";
+  matchType: "singles" | "doubles";
+  status: "enrollment" | "in_progress";
+  scheduledDate: Date | null;
+  scheduledTime: string | null;
+  location: string | null;
+  enrollmentCount: number;
+  currentRound?: number | null;
+  totalRounds?: number | null;
+}
+
+interface MyNextMatchData {
+  opponentName: string;
+  roundName: string;
+}
+
 interface DashboardClientProps {
   leaderboard: LeaderboardPlayer[];
   currentPlayer: CurrentPlayer | null;
@@ -108,10 +124,12 @@ interface DashboardClientProps {
   recentMatches: Match[];
   recentForm: ("W" | "L")[];
   eloChange: number;
-  challenges: Challenge[];
   hotStreaks: HotStreakPlayer[];
   recentAchievements: RecentAchievementData[];
   headToHead: HeadToHeadRecord[];
+  upcomingTournament?: UpcomingTournamentData | null;
+  isEnrolledInTournament?: boolean;
+  myNextMatch?: MyNextMatchData | null;
 }
 
 export function DashboardClient({
@@ -122,10 +140,12 @@ export function DashboardClient({
   recentMatches,
   recentForm,
   eloChange,
-  challenges,
   hotStreaks,
   recentAchievements,
   headToHead,
+  upcomingTournament,
+  isEnrolledInTournament,
+  myNextMatch,
 }: DashboardClientProps) {
   return (
     <div className="min-h-screen bg-black p-6 md:p-8">
@@ -159,8 +179,15 @@ export function DashboardClient({
           />
         </div>
 
-        {/* Secondary Content Grid - 3 columns */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {/* Secondary Content Grid - 4 columns on xl, 3 on lg, 2 on md */}
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {/* Upcoming Tournament */}
+          <UpcomingTournament
+            tournament={upcomingTournament ?? null}
+            isEnrolled={isEnrolledInTournament}
+            myNextMatch={myNextMatch}
+          />
+
           {/* Head to Head */}
           <HeadToHead records={headToHead} />
 
@@ -173,12 +200,6 @@ export function DashboardClient({
 
         {/* Ping-Pong Tip */}
         <TipsCard />
-
-        {/* Active Challenges */}
-        <ActiveChallenges
-          challenges={challenges}
-          currentPlayerId={currentPlayer?.id}
-        />
 
         {/* Empty state for new users */}
         {!currentPlayer && (

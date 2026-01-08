@@ -3,7 +3,8 @@ import { auth } from "@/lib/auth";
 import { getLeaderboard, getCurrentPlayer, getPlayers, getHotStreaks } from "@/actions/players";
 import { getRecentMatches, getPlayerMatches, getHeadToHeadStats } from "@/actions/matches";
 import { getRecentAchievements } from "@/actions/achievements";
-import { getChallenges } from "@/actions/challenges";
+import { getUpcomingTournament } from "@/actions/tournaments";
+import { getEnrollmentStatus } from "@/actions/tournament-enrollment";
 import { DashboardClient } from "./dashboard-client";
 
 export default async function DashboardPage() {
@@ -14,15 +15,26 @@ export default async function DashboardPage() {
   }
 
   // Fetch all data in parallel
-  const [leaderboard, currentPlayer, recentMatches, allPlayers, hotStreaks, recentAchievements, challenges] = await Promise.all([
+  const [leaderboard, currentPlayer, recentMatches, allPlayers, hotStreaks, recentAchievements, upcomingTournament] = await Promise.all([
     getLeaderboard(10),
     getCurrentPlayer(),
     getRecentMatches(8),
     getPlayers(),
     getHotStreaks(5),
     getRecentAchievements(6),
-    getChallenges(),
+    getUpcomingTournament(),
   ]);
+
+  // Fetch enrollment status if there's an upcoming tournament
+  let isEnrolledInTournament = false;
+  let myNextMatch = null;
+
+  if (upcomingTournament) {
+    const { isEnrolled } = await getEnrollmentStatus(upcomingTournament.id);
+    isEnrolledInTournament = isEnrolled;
+
+    // TODO: Add logic to fetch myNextMatch if tournament is in_progress and user is enrolled
+  }
 
   // Calculate current user's rank
   const currentPlayerRank = currentPlayer
@@ -53,6 +65,23 @@ export default async function DashboardPage() {
     ? await getHeadToHeadStats(currentPlayer.id, 5)
     : [];
 
+  // Transform tournament data for dashboard
+  const tournamentForDashboard = upcomingTournament
+    ? {
+        id: upcomingTournament.id,
+        name: upcomingTournament.name,
+        format: upcomingTournament.format,
+        matchType: upcomingTournament.matchType,
+        status: upcomingTournament.status as "enrollment" | "in_progress",
+        scheduledDate: upcomingTournament.scheduledDate,
+        scheduledTime: upcomingTournament.scheduledTime,
+        location: upcomingTournament.location,
+        enrollmentCount: upcomingTournament.enrollmentCount,
+        currentRound: upcomingTournament.currentRound,
+        totalRounds: upcomingTournament.totalRounds,
+      }
+    : null;
+
   return (
     <DashboardClient
       leaderboard={leaderboard}
@@ -62,10 +91,12 @@ export default async function DashboardPage() {
       recentMatches={recentMatches}
       recentForm={recentForm}
       eloChange={eloChange}
-      challenges={challenges}
       hotStreaks={hotStreaks}
       recentAchievements={recentAchievements}
       headToHead={headToHead}
+      upcomingTournament={tournamentForDashboard}
+      isEnrolledInTournament={isEnrolledInTournament}
+      myNextMatch={myNextMatch}
     />
   );
 }

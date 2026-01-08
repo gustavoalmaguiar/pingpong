@@ -12,26 +12,18 @@ import { Button } from "@/components/ui/button";
 import { PlayerSelect, type PlayerOption } from "./player-select";
 import { getPlayers } from "@/actions/players";
 import { logSinglesMatch, logDoublesMatch } from "@/actions/matches";
-import { completeChallenge } from "@/actions/challenges";
 import { calculateEloChange, calculateDoublesEloChange } from "@/lib/elo";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-interface ChallengeData {
-  challengeId: string;
-  challengerId: string;
-  challengedId: string;
-}
-
 interface LogMatchModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  challengeData?: ChallengeData | null;
 }
 
 type MatchType = "singles" | "doubles";
 
-export function LogMatchModal({ open, onOpenChange, challengeData }: LogMatchModalProps) {
+export function LogMatchModal({ open, onOpenChange }: LogMatchModalProps) {
   const [matchType, setMatchType] = useState<MatchType>("singles");
   const [players, setPlayers] = useState<PlayerOption[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -51,9 +43,6 @@ export function LogMatchModal({ open, onOpenChange, challengeData }: LogMatchMod
   const [winnerScore, setWinnerScore] = useState(11);
   const [loserScore, setLoserScore] = useState(0);
 
-  // Track if we've initialized from challenge data
-  const [initializedFromChallenge, setInitializedFromChallenge] = useState(false);
-
   // Load players
   useEffect(() => {
     if (open) {
@@ -70,24 +59,6 @@ export function LogMatchModal({ open, onOpenChange, challengeData }: LogMatchMod
           );
         })
         .finally(() => setIsLoading(false));
-    }
-  }, [open]);
-
-  // Pre-select players from challenge data
-  useEffect(() => {
-    if (challengeData && players.length > 0 && !initializedFromChallenge) {
-      // For challenges, we don't know who won yet, but we can inform the user
-      // The user will select who won - the challenger and challenged are both potential players
-      // We don't pre-select winner/loser since the challenge doesn't dictate who won
-      setMatchType("singles");
-      setInitializedFromChallenge(true);
-    }
-  }, [challengeData, players, initializedFromChallenge]);
-
-  // Reset initialized flag when modal closes
-  useEffect(() => {
-    if (!open) {
-      setInitializedFromChallenge(false);
     }
   }, [open]);
 
@@ -142,8 +113,6 @@ export function LogMatchModal({ open, onOpenChange, challengeData }: LogMatchMod
 
     setIsSubmitting(true);
     try {
-      let matchId: string | undefined;
-
       if (matchType === "singles") {
         const result = await logSinglesMatch({
           winnerId: winnerId!,
@@ -152,7 +121,6 @@ export function LogMatchModal({ open, onOpenChange, challengeData }: LogMatchMod
           loserScore,
         });
         setLastEloChange(result.eloChange);
-        matchId = result.match.id;
       } else {
         const result = await logDoublesMatch({
           winnerTeam: winnerTeam as [string, string],
@@ -161,17 +129,6 @@ export function LogMatchModal({ open, onOpenChange, challengeData }: LogMatchMod
           loserScore,
         });
         setLastEloChange(result.eloChange);
-        matchId = result.match.id;
-      }
-
-      // Complete challenge if this match was from a challenge
-      if (challengeData?.challengeId && matchId) {
-        try {
-          await completeChallenge(challengeData.challengeId, matchId);
-        } catch (e) {
-          // Non-blocking - match is already logged
-          console.error("Failed to complete challenge:", e);
-        }
       }
 
       setShowSuccess(true);
@@ -273,12 +230,7 @@ export function LogMatchModal({ open, onOpenChange, challengeData }: LogMatchMod
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10">
                     <div className="h-3 w-3 rounded-full bg-white" />
                   </div>
-                  <div>
-                    <h2 className="text-base font-semibold tracking-tight">Log Match</h2>
-                    {challengeData && (
-                      <p className="text-[10px] text-emerald-500">Challenge Match</p>
-                    )}
-                  </div>
+                  <h2 className="text-base font-semibold tracking-tight">Log Match</h2>
                 </div>
                 <button
                   onClick={() => onOpenChange(false)}

@@ -11,11 +11,7 @@ import { calculateLevel } from "@/lib/xp";
 // Seed achievements into database (run once)
 export async function seedAchievements() {
   for (const achievement of ACHIEVEMENTS) {
-    const existing = await db.query.achievements.findFirst({
-      where: eq(achievements.key, achievement.key),
-    });
-
-    if (!existing) {
+    try {
       await db.insert(achievements).values({
         key: achievement.key,
         name: achievement.name,
@@ -23,7 +19,9 @@ export async function seedAchievements() {
         icon: achievement.icon,
         xpReward: achievement.xpReward,
         tier: achievement.tier,
-      });
+      }).onConflictDoNothing({ target: achievements.key });
+    } catch {
+      // Ignore duplicate key errors - achievement already exists
     }
   }
 }
@@ -44,7 +42,13 @@ export async function checkAndAwardAchievements(playerId: string) {
   const earnedAchievementIds = earned.map((e) => e.achievementId);
 
   // Get achievement records to map IDs to keys
-  const allAchievements = await db.query.achievements.findMany();
+  let allAchievements = await db.query.achievements.findMany();
+
+  // Auto-seed achievements if table is empty
+  if (allAchievements.length === 0) {
+    await seedAchievements();
+    allAchievements = await db.query.achievements.findMany();
+  }
   const earnedKeys = earnedAchievementIds
     .map((id) => allAchievements.find((a) => a.id === id)?.key)
     .filter(Boolean) as string[];
@@ -59,6 +63,13 @@ export async function checkAndAwardAchievements(playerId: string) {
     level: player.level,
     perfectGames: 0, // Would need to track this
     comebacks: 0, // Would need to track this
+    // Tournament stats
+    tournamentMatchesWon: player.tournamentMatchesWon,
+    tournamentMatchesPlayed: player.tournamentMatchesPlayed,
+    tournamentsPlayed: player.tournamentsPlayed,
+    tournamentsWon: player.tournamentsWon,
+    tournamentCurrentStreak: player.tournamentCurrentStreak,
+    tournamentBestStreak: player.tournamentBestStreak,
   };
 
   // Check for new achievements

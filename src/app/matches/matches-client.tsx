@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { Gamepad2, User, Users, Filter } from "lucide-react";
+import { User, Users, Trophy, Zap, ChevronDown, Pencil } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
+import { TournamentBadge } from "@/components/ui/tournament-badge";
+import { LoggedByIndicator } from "@/components/match/logged-by-indicator";
 import { cn } from "@/lib/utils";
-import { formatDistanceToNow } from "@/lib/format";
+import { formatDistanceToNow, formatFullDate } from "@/lib/format";
 
 interface Player {
   id: string;
@@ -23,212 +24,450 @@ interface Match {
   loserScore: number;
   eloChange: number;
   playedAt: Date;
+  createdAt: Date;
   winner?: Player;
   loser?: Player;
   winnerTeam?: Player[];
   loserTeam?: Player[];
+  tournamentMatchId?: string | null;
+  tournament?: {
+    id: string;
+    name: string;
+    format: string;
+  } | null;
+  loggedByUser?: {
+    id: string;
+    name: string | null;
+    image: string | null;
+  } | null;
 }
 
-type FilterOption = "all" | "singles" | "doubles";
+type FilterOption = "all" | "singles" | "doubles" | "tournament" | "regular";
 
-const filterOptions: { value: FilterOption; label: string; icon: typeof User }[] = [
-  { value: "all", label: "All Matches", icon: Gamepad2 },
-  { value: "singles", label: "Singles", icon: User },
-  { value: "doubles", label: "Doubles", icon: Users },
-];
+const filterConfig: Record<FilterOption, { label: string; icon: typeof User }> = {
+  all: { label: "All", icon: Zap },
+  singles: { label: "1v1", icon: User },
+  doubles: { label: "2v2", icon: Users },
+  tournament: { label: "Tournament", icon: Trophy },
+  regular: { label: "Regular", icon: Zap },
+};
 
 export function MatchesClient({ matches }: { matches: Match[] }) {
   const [filter, setFilter] = useState<FilterOption>("all");
+  const [expandedMatchId, setExpandedMatchId] = useState<string | null>(null);
+
+  const toggleExpanded = (matchId: string) => {
+    setExpandedMatchId((prev) => (prev === matchId ? null : matchId));
+  };
 
   const filteredMatches = useMemo(() => {
-    if (filter === "all") return matches;
-    return matches.filter((m) => m.type === filter);
+    switch (filter) {
+      case "singles":
+        return matches.filter((m) => m.type === "singles");
+      case "doubles":
+        return matches.filter((m) => m.type === "doubles");
+      case "tournament":
+        return matches.filter((m) => m.tournamentMatchId);
+      case "regular":
+        return matches.filter((m) => !m.tournamentMatchId);
+      default:
+        return matches;
+    }
   }, [matches, filter]);
 
   const stats = useMemo(() => {
-    const total = matches.length;
-    const singles = matches.filter((m) => m.type === "singles").length;
-    const doubles = matches.filter((m) => m.type === "doubles").length;
-    return { total, singles, doubles };
+    return {
+      total: matches.length,
+      singles: matches.filter((m) => m.type === "singles").length,
+      doubles: matches.filter((m) => m.type === "doubles").length,
+      tournament: matches.filter((m) => m.tournamentMatchId).length,
+    };
   }, [matches]);
 
   return (
-    <div className="min-h-screen bg-black p-6 md:p-8">
-      <div className="mx-auto max-w-5xl space-y-8">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
-        >
-          <div className="flex items-center gap-3">
-            <Gamepad2 className="h-6 w-6 text-[#525252]" />
-            <h1 className="text-2xl font-bold tracking-tight">Match History</h1>
-          </div>
+    <div className="min-h-screen bg-black">
+      {/* Gradient overlay for depth */}
+      <div className="fixed inset-0 bg-gradient-to-b from-violet-950/5 via-transparent to-emerald-950/5 pointer-events-none" />
 
-          {/* Stats Pills */}
-          <div className="flex items-center gap-2">
-            <div className="rounded-full bg-[#0a0a0a] border border-[#1a1a1a] px-3 py-1">
-              <span className="font-mono text-sm font-semibold text-white">{stats.total}</span>
-              <span className="ml-1.5 text-[10px] font-medium uppercase tracking-wider text-[#525252]">total</span>
-            </div>
-            <div className="rounded-full bg-[#0a0a0a] border border-[#1a1a1a] px-3 py-1">
-              <span className="font-mono text-sm font-semibold text-white">{stats.singles}</span>
-              <span className="ml-1.5 text-[10px] font-medium uppercase tracking-wider text-[#525252]">1v1</span>
-            </div>
-            <div className="rounded-full bg-[#0a0a0a] border border-[#1a1a1a] px-3 py-1">
-              <span className="font-mono text-sm font-semibold text-white">{stats.doubles}</span>
-              <span className="ml-1.5 text-[10px] font-medium uppercase tracking-wider text-[#525252]">2v2</span>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Filter Tabs */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="flex items-center gap-2"
-        >
-          {filterOptions.map((option) => (
-            <Button
-              key={option.value}
-              size="sm"
-              variant="ghost"
-              onClick={() => setFilter(option.value)}
-              className={cn(
-                "h-9 gap-2 px-4 text-xs transition-all",
-                filter === option.value
-                  ? "bg-white text-black hover:bg-white/90"
-                  : "text-[#737373] hover:bg-[#1a1a1a] hover:text-white"
-              )}
-            >
-              <option.icon className="h-3.5 w-3.5" />
-              {option.label}
-            </Button>
-          ))}
-        </motion.div>
-
-        {/* Matches List */}
-        {filteredMatches.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex h-64 items-center justify-center rounded-xl border border-[#1a1a1a] bg-[#0a0a0a]"
+      <div className="relative z-10 px-4 py-8 md:px-8 md:py-12">
+        <div className="mx-auto max-w-6xl">
+          {/* Header Section */}
+          <motion.header
+            initial={{ opacity: 0, y: -30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            className="mb-10"
           >
-            <p className="text-[#525252]">No matches found</p>
-          </motion.div>
-        ) : (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="space-y-3"
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+              {/* Title */}
+              <div className="space-y-2">
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1, duration: 0.5 }}
+                  className="flex items-center gap-3"
+                >
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 ring-1 ring-emerald-500/20">
+                    <Zap className="h-5 w-5 text-emerald-400" />
+                  </div>
+                  <span className="text-xs font-medium uppercase tracking-[0.2em] text-neutral-500">
+                    Match History
+                  </span>
+                </motion.div>
+                <h1 className="text-4xl font-bold tracking-tight text-white md:text-5xl">
+                  All Matches
+                </h1>
+              </div>
+
+              {/* Stats Pills */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2, duration: 0.5 }}
+                className="flex flex-wrap items-center gap-2"
+              >
+                <StatPill value={stats.total} label="Total" />
+                <StatPill value={stats.singles} label="Singles" variant="neutral" />
+                <StatPill value={stats.doubles} label="Doubles" variant="neutral" />
+                <StatPill value={stats.tournament} label="Tournament" variant="tournament" />
+              </motion.div>
+            </div>
+          </motion.header>
+
+          {/* Filter Tabs */}
+          <motion.nav
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.5 }}
+            className="mb-8"
           >
-            {filteredMatches.map((match, index) => (
-              <MatchRow key={match.id} match={match} index={index} />
-            ))}
-          </motion.div>
-        )}
+            <div className="flex items-center gap-1 rounded-xl bg-neutral-900/50 p-1.5 ring-1 ring-white/5 backdrop-blur-sm w-fit">
+              {(Object.keys(filterConfig) as FilterOption[]).map((key) => {
+                const config = filterConfig[key];
+                const isActive = filter === key;
+                const Icon = config.icon;
+
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setFilter(key)}
+                    className={cn(
+                      "relative flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-200",
+                      isActive
+                        ? "text-white"
+                        : "text-neutral-500 hover:text-neutral-300"
+                    )}
+                  >
+                    {isActive && (
+                      <motion.div
+                        layoutId="activeFilter"
+                        className={cn(
+                          "absolute inset-0 rounded-lg",
+                          key === "tournament"
+                            ? "bg-gradient-to-r from-violet-600/30 to-violet-500/20 ring-1 ring-violet-500/30"
+                            : "bg-white/10 ring-1 ring-white/10"
+                        )}
+                        transition={{ type: "spring", bounce: 0.2, duration: 0.4 }}
+                      />
+                    )}
+                    <Icon className="relative z-10 h-4 w-4" />
+                    <span className="relative z-10">{config.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </motion.nav>
+
+          {/* Match List */}
+          <AnimatePresence mode="wait">
+            {filteredMatches.length === 0 ? (
+              <motion.div
+                key="empty"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="flex h-80 items-center justify-center rounded-2xl border border-dashed border-neutral-800 bg-neutral-900/30"
+              >
+                <p className="text-neutral-600">No matches found</p>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="list"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="space-y-3"
+              >
+                {filteredMatches.map((match, index) => (
+                  <MatchCard
+                    key={match.id}
+                    match={match}
+                    index={index}
+                    isExpanded={expandedMatchId === match.id}
+                    onToggle={() => toggleExpanded(match.id)}
+                  />
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
     </div>
   );
 }
 
-function MatchRow({ match, index }: { match: Match; index: number }) {
+function StatPill({
+  value,
+  label,
+  variant = "default",
+}: {
+  value: number;
+  label: string;
+  variant?: "default" | "neutral" | "tournament";
+}) {
+  return (
+    <div
+      className={cn(
+        "flex items-center gap-2.5 rounded-full px-4 py-2 ring-1",
+        variant === "tournament"
+          ? "bg-violet-500/10 ring-violet-500/20"
+          : variant === "neutral"
+            ? "bg-neutral-900/50 ring-white/5"
+            : "bg-emerald-500/10 ring-emerald-500/20"
+      )}
+    >
+      <span
+        className={cn(
+          "font-mono text-lg font-bold tabular-nums",
+          variant === "tournament"
+            ? "text-violet-400"
+            : variant === "neutral"
+              ? "text-white"
+              : "text-emerald-400"
+        )}
+      >
+        {value}
+      </span>
+      <span className="text-xs font-medium uppercase tracking-wider text-neutral-500">
+        {label}
+      </span>
+    </div>
+  );
+}
+
+function MatchCard({
+  match,
+  index,
+  isExpanded,
+  onToggle,
+}: {
+  match: Match;
+  index: number;
+  isExpanded: boolean;
+  onToggle: () => void;
+}) {
   const isSingles = match.type === "singles";
+  const isTournament = !!match.tournamentMatchId;
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: index * 0.02, duration: 0.3 }}
-      className="group relative overflow-hidden rounded-xl border border-[#1a1a1a] bg-[#0a0a0a] transition-all duration-300 hover:border-[#262626]"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{
+        delay: index * 0.03,
+        duration: 0.4,
+        ease: [0.22, 1, 0.36, 1],
+      }}
+      onClick={onToggle}
+      className={cn(
+        "group relative cursor-pointer overflow-hidden rounded-2xl transition-all duration-300",
+        isTournament
+          ? "bg-gradient-to-r from-violet-950/40 via-neutral-900/80 to-neutral-900/80 ring-1 ring-violet-500/20 hover:ring-violet-500/40"
+          : "bg-neutral-900/60 ring-1 ring-white/5 hover:ring-white/10"
+      )}
     >
-      <div className="flex flex-col sm:flex-row sm:items-center">
-        {/* Match Type Badge */}
-        <div className="flex items-center gap-3 border-b border-[#1a1a1a] px-5 py-3 sm:w-20 sm:border-b-0 sm:border-r sm:py-5">
+      {/* Tournament glow effect */}
+      {isTournament && (
+        <div className="absolute -left-20 -top-20 h-40 w-40 rounded-full bg-violet-500/10 blur-3xl" />
+      )}
+
+      <div className="relative flex flex-col lg:flex-row lg:items-center">
+        {/* Left: Match Type & Tournament Info */}
+        <div className="flex items-center gap-4 border-b border-white/5 px-5 py-4 lg:w-56 lg:border-b-0 lg:border-r lg:py-6">
           <div
             className={cn(
-              "flex h-8 items-center justify-center gap-1.5 rounded-md px-2.5 text-[10px] font-bold uppercase tracking-wider",
-              isSingles
-                ? "bg-[#1a1a1a] text-[#a3a3a3]"
-                : "bg-[#1f1f1f] text-[#a3a3a3]"
+              "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+              isTournament
+                ? "bg-violet-500/15 text-violet-400"
+                : "bg-neutral-800 text-neutral-400"
             )}
           >
             {isSingles ? (
-              <>
-                <User className="h-3 w-3" />
-                <span>1v1</span>
-              </>
+              <User className="h-5 w-5" />
             ) : (
-              <>
-                <Users className="h-3 w-3" />
-                <span>2v2</span>
-              </>
+              <Users className="h-5 w-5" />
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-neutral-400">
+                {isSingles ? "Singles" : "Doubles"}
+              </span>
+              {isTournament && <TournamentBadge iconOnly />}
+            </div>
+            {isTournament && match.tournament && (
+              <Link
+                href={`/tournaments/${match.tournament.id}`}
+                className="mt-1 block truncate text-sm text-violet-400 hover:text-violet-300 transition-colors"
+              >
+                {match.tournament.name}
+              </Link>
             )}
           </div>
         </div>
 
-        {/* Players & Score */}
-        <div className="flex flex-1 flex-col gap-4 px-5 py-4 sm:flex-row sm:items-center sm:gap-6">
+        {/* Center: Players & Score */}
+        <div className="flex flex-1 flex-col items-center gap-4 px-5 py-5 sm:flex-row sm:gap-6 lg:px-8">
           {/* Winner Side */}
-          <div className="flex flex-1 items-center justify-end gap-3 sm:justify-end">
+          <div className="flex flex-1 justify-end">
             {isSingles ? (
-              <PlayerBadge player={match.winner!} isWinner />
+              <PlayerDisplay player={match.winner!} isWinner />
             ) : (
-              <TeamBadge players={match.winnerTeam!} isWinner />
+              <TeamDisplay players={match.winnerTeam!} isWinner />
             )}
           </div>
 
-          {/* Score */}
-          <div className="flex items-center justify-center gap-2 sm:min-w-[100px]">
-            <span className="font-mono text-2xl font-bold text-emerald-500">
-              {match.winnerScore}
-            </span>
-            <span className="text-[#333] text-lg">-</span>
-            <span className="font-mono text-2xl font-bold text-[#525252]">
-              {match.loserScore}
-            </span>
+          {/* Score Display - The Dramatic Center */}
+          <div className="flex items-center gap-3 sm:min-w-[140px] justify-center">
+            <ScoreDigit value={match.winnerScore} variant="winner" />
+            <div className="flex flex-col items-center gap-0.5">
+              <span className="text-neutral-700 text-xl font-light">–</span>
+            </div>
+            <ScoreDigit value={match.loserScore} variant="loser" />
           </div>
 
           {/* Loser Side */}
-          <div className="flex flex-1 items-center gap-3 sm:justify-start">
+          <div className="flex flex-1 justify-start">
             {isSingles ? (
-              <PlayerBadge player={match.loser!} isWinner={false} />
+              <PlayerDisplay player={match.loser!} isWinner={false} />
             ) : (
-              <TeamBadge players={match.loserTeam!} isWinner={false} />
+              <TeamDisplay players={match.loserTeam!} isWinner={false} />
             )}
           </div>
         </div>
 
-        {/* Meta Info */}
-        <div className="flex items-center justify-between gap-4 border-t border-[#1a1a1a] px-5 py-3 sm:w-40 sm:flex-col sm:items-end sm:justify-center sm:border-l sm:border-t-0">
-          <div className="flex items-center gap-1">
-            <span className="text-[10px] font-medium uppercase tracking-wider text-[#525252]">
+        {/* Right: ELO & Time */}
+        <div className="flex items-center justify-between gap-6 border-t border-white/5 px-5 py-4 lg:w-56 lg:flex-col lg:items-end lg:justify-center lg:border-l lg:border-t-0 lg:py-6">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-600">
               ELO
             </span>
-            <span className="font-mono text-sm font-semibold text-emerald-500">
-              +{match.eloChange}
-            </span>
-            <span className="text-[#333]">/</span>
-            <span className="font-mono text-sm font-semibold text-red-500/70">
-              -{match.eloChange}
-            </span>
+            <div className="flex items-center gap-1 font-mono text-sm font-bold">
+              <span className="text-emerald-400">+{match.eloChange}</span>
+              <span className="text-neutral-700">/</span>
+              <span className="text-red-400/70">-{match.eloChange}</span>
+            </div>
           </div>
-          <span className="text-[10px] text-[#525252]">
-            {formatDistanceToNow(match.playedAt)}
-          </span>
+          <div className="flex items-center gap-3">
+            <LoggedByIndicator user={match.loggedByUser ?? null} size="md" />
+            <span className="text-xs text-neutral-600">
+              {formatDistanceToNow(match.playedAt)}
+            </span>
+            <ChevronDown
+              className={cn(
+                "h-4 w-4 text-neutral-600 transition-transform duration-200",
+                isExpanded && "rotate-180"
+              )}
+            />
+          </div>
         </div>
       </div>
 
-      {/* Hover accent line */}
-      <div className="absolute bottom-0 left-0 h-0.5 w-full origin-left scale-x-0 bg-gradient-to-r from-emerald-500/50 to-transparent transition-transform duration-300 group-hover:scale-x-100" />
+      {/* Expandable Details Panel */}
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="border-t border-white/5 bg-neutral-950/50 px-5 py-4 lg:px-8">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                {/* Match ID */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-neutral-500">Match ID</span>
+                  <span className="font-mono text-xs text-neutral-600">
+                    {match.id.slice(0, 8)}...
+                  </span>
+                </div>
+
+                {/* Audit info */}
+                <div className="flex items-center gap-2">
+                  <Pencil className="h-3 w-3 text-neutral-600" />
+                  <span className="text-xs text-neutral-500">Logged by</span>
+                  {match.loggedByUser ? (
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-5 w-5 ring-1 ring-neutral-700/50">
+                        <AvatarImage src={match.loggedByUser.image || undefined} />
+                        <AvatarFallback className="bg-neutral-800 text-[8px]">
+                          {match.loggedByUser.name?.charAt(0) || "?"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-xs text-neutral-400">
+                        {match.loggedByUser.name || "Unknown"}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-neutral-400">Unknown user</span>
+                  )}
+                  <span className="text-xs text-neutral-600">on</span>
+                  <span className="text-xs text-neutral-400">
+                    {formatFullDate(match.createdAt)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Hover accent */}
+      <div
+        className={cn(
+          "absolute bottom-0 left-0 h-0.5 w-full origin-left scale-x-0 transition-transform duration-500 group-hover:scale-x-100",
+          isTournament
+            ? "bg-gradient-to-r from-violet-500/50 via-violet-400/30 to-transparent"
+            : "bg-gradient-to-r from-emerald-500/40 via-emerald-400/20 to-transparent"
+        )}
+      />
     </motion.div>
   );
 }
 
-function PlayerBadge({
+function ScoreDigit({
+  value,
+  variant,
+}: {
+  value: number;
+  variant: "winner" | "loser";
+}) {
+  return (
+    <div
+      className={cn(
+        "flex h-14 w-14 items-center justify-center rounded-xl font-mono text-3xl font-black tabular-nums transition-transform duration-200 group-hover:scale-105",
+        variant === "winner"
+          ? "bg-emerald-500/15 text-emerald-400 ring-1 ring-emerald-500/20"
+          : "bg-neutral-800/50 text-neutral-500 ring-1 ring-white/5"
+      )}
+    >
+      {value}
+    </div>
+  );
+}
+
+function PlayerDisplay({
   player,
   isWinner,
 }: {
@@ -239,29 +478,50 @@ function PlayerBadge({
     <Link
       href={`/players/${player.id}`}
       className={cn(
-        "flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-[#1a1a1a]",
-        isWinner ? "flex-row-reverse sm:flex-row" : ""
+        "flex items-center gap-3 rounded-xl px-3 py-2 transition-all duration-200 hover:bg-white/5",
+        isWinner ? "flex-row-reverse text-right" : ""
       )}
     >
-      <Avatar className="h-8 w-8 border border-[#262626]">
-        <AvatarImage src={player.avatarUrl || undefined} />
-        <AvatarFallback className="bg-[#1a1a1a] text-xs">
-          {player.displayName.charAt(0)}
-        </AvatarFallback>
-      </Avatar>
-      <span
+      <Avatar
         className={cn(
-          "text-sm font-medium transition-colors",
-          isWinner ? "text-emerald-500" : "text-[#737373]"
+          "h-10 w-10 ring-2 transition-all duration-200",
+          isWinner
+            ? "ring-emerald-500/30 group-hover:ring-emerald-500/50"
+            : "ring-neutral-700/50"
         )}
       >
-        {player.displayName}
-      </span>
+        <AvatarImage src={player.avatarUrl || undefined} />
+        <AvatarFallback
+          className={cn(
+            "text-sm font-medium",
+            isWinner
+              ? "bg-emerald-500/20 text-emerald-400"
+              : "bg-neutral-800 text-neutral-400"
+          )}
+        >
+          {player.displayName.charAt(0).toUpperCase()}
+        </AvatarFallback>
+      </Avatar>
+      <div className={cn("min-w-0", isWinner ? "text-right" : "text-left")}>
+        <p
+          className={cn(
+            "truncate text-sm font-semibold transition-colors",
+            isWinner
+              ? "text-emerald-400 group-hover:text-emerald-300"
+              : "text-neutral-400"
+          )}
+        >
+          {player.displayName}
+        </p>
+        <p className="text-[10px] font-medium text-neutral-600 tabular-nums">
+          {player.elo} ELO
+        </p>
+      </div>
     </Link>
   );
 }
 
-function TeamBadge({
+function TeamDisplay({
   players,
   isWinner,
 }: {
@@ -271,17 +531,32 @@ function TeamBadge({
   return (
     <div
       className={cn(
-        "flex items-center gap-1",
-        isWinner ? "flex-row-reverse sm:flex-row" : ""
+        "flex items-center gap-3",
+        isWinner ? "flex-row-reverse" : ""
       )}
     >
-      <div className="flex -space-x-2">
-        {players.map((player) => (
+      <div className="flex -space-x-3">
+        {players.map((player, i) => (
           <Link key={player.id} href={`/players/${player.id}`}>
-            <Avatar className="h-8 w-8 border-2 border-[#0a0a0a] transition-transform hover:z-10 hover:scale-110">
+            <Avatar
+              className={cn(
+                "h-10 w-10 ring-2 transition-all duration-200 hover:z-10 hover:scale-110",
+                isWinner
+                  ? "ring-emerald-500/30 hover:ring-emerald-500/50"
+                  : "ring-neutral-800 hover:ring-neutral-600"
+              )}
+              style={{ zIndex: players.length - i }}
+            >
               <AvatarImage src={player.avatarUrl || undefined} />
-              <AvatarFallback className="bg-[#1a1a1a] text-xs">
-                {player.displayName.charAt(0)}
+              <AvatarFallback
+                className={cn(
+                  "text-sm font-medium",
+                  isWinner
+                    ? "bg-emerald-500/20 text-emerald-400"
+                    : "bg-neutral-800 text-neutral-400"
+                )}
+              >
+                {player.displayName.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
           </Link>
@@ -289,8 +564,8 @@ function TeamBadge({
       </div>
       <div
         className={cn(
-          "flex flex-col text-xs",
-          isWinner ? "items-end sm:items-start" : "items-start"
+          "flex flex-col gap-0.5",
+          isWinner ? "items-end" : "items-start"
         )}
       >
         {players.map((player, i) => (
@@ -298,12 +573,14 @@ function TeamBadge({
             key={player.id}
             href={`/players/${player.id}`}
             className={cn(
-              "transition-colors hover:underline",
-              isWinner ? "text-emerald-500" : "text-[#737373]"
+              "text-xs font-medium transition-colors hover:underline",
+              isWinner ? "text-emerald-400" : "text-neutral-500"
             )}
           >
             {player.displayName}
-            {i === 0 && <span className="text-[#333]"> &</span>}
+            {i === 0 && (
+              <span className="text-neutral-700 ml-1">&</span>
+            )}
           </Link>
         ))}
       </div>

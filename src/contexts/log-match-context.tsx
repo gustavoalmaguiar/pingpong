@@ -2,16 +2,9 @@
 
 import { createContext, useContext, useState, ReactNode } from "react";
 
-interface ChallengeData {
-  challengeId: string;
-  challengerId: string;
-  challengedId: string;
-}
-
 interface LogMatchContextType {
   isOpen: boolean;
-  challengeData: ChallengeData | null;
-  openModal: (challengeData?: ChallengeData) => void;
+  openModal: () => void;
   closeModal: () => void;
 }
 
@@ -19,20 +12,17 @@ const LogMatchContext = createContext<LogMatchContextType | null>(null);
 
 export function LogMatchProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [challengeData, setChallengeData] = useState<ChallengeData | null>(null);
 
-  const openModal = (data?: ChallengeData) => {
-    setChallengeData(data || null);
+  const openModal = () => {
     setIsOpen(true);
   };
 
   const closeModal = () => {
     setIsOpen(false);
-    setChallengeData(null);
   };
 
   return (
-    <LogMatchContext.Provider value={{ isOpen, challengeData, openModal, closeModal }}>
+    <LogMatchContext.Provider value={{ isOpen, openModal, closeModal }}>
       {children}
     </LogMatchContext.Provider>
   );

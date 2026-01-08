@@ -6,7 +6,7 @@ import { LogMatchModal } from "./log-match-modal";
 import { useLogMatch } from "@/contexts/log-match-context";
 
 export function FloatingActionButton() {
-  const { isOpen, openModal, closeModal, challengeData } = useLogMatch();
+  const { isOpen, openModal, closeModal } = useLogMatch();
   const [isHovered, setIsHovered] = useState(false);
 
   return (
@@ -90,7 +90,6 @@ export function FloatingActionButton() {
       <LogMatchModal
         open={isOpen}
         onOpenChange={(open) => !open && closeModal()}
-        challengeData={challengeData}
       />
     </>
   );

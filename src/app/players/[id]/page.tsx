@@ -70,7 +70,6 @@ export default async function PlayerPage({ params }: PlayerPageProps) {
       matches={matches}
       headToHeadRecords={headToHeadRecords}
       isOwnProfile={isOwnProfile}
-      currentPlayerId={session.user.playerId}
       achievements={playerAchievements}
       allAchievements={allAchievements}
     />
