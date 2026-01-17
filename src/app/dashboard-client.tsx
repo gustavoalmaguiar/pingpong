@@ -31,29 +31,18 @@ interface MatchPlayer {
   avatarUrl?: string | null;
 }
 
-interface SinglesMatch {
+interface Match {
   id: string;
-  type: "singles";
-  winner: MatchPlayer;
-  loser: MatchPlayer;
+  type: "singles" | "doubles";
+  winner?: MatchPlayer;
+  loser?: MatchPlayer;
+  winnerTeam?: MatchPlayer[];
+  loserTeam?: MatchPlayer[];
   winnerScore: number;
   loserScore: number;
   eloChange: number;
   playedAt: Date;
 }
-
-interface DoublesMatch {
-  id: string;
-  type: "doubles";
-  winnerTeam: [MatchPlayer, MatchPlayer];
-  loserTeam: [MatchPlayer, MatchPlayer];
-  winnerScore: number;
-  loserScore: number;
-  eloChange: number;
-  playedAt: Date;
-}
-
-type Match = SinglesMatch | DoublesMatch;
 
 interface CurrentPlayer {
   id: string;
@@ -70,8 +59,8 @@ interface CurrentPlayer {
 
 interface Challenge {
   id: string;
-  challenger: MatchPlayer & { elo: number };
-  challenged: MatchPlayer & { elo: number };
+  challenger?: MatchPlayer & { elo: number };
+  challenged?: MatchPlayer & { elo: number };
   status: "pending" | "accepted" | "declined" | "completed" | "expired";
   message?: string | null;
   createdAt: Date;

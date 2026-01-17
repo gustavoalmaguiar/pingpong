@@ -54,8 +54,8 @@ interface Match {
   playedAt: Date;
   winner?: { displayName: string };
   loser?: { displayName: string };
-  winnerTeam?: [{ displayName: string }, { displayName: string }];
-  loserTeam?: [{ displayName: string }, { displayName: string }];
+  winnerTeam?: { displayName: string }[];
+  loserTeam?: { displayName: string }[];
 }
 
 interface AdminDashboardClientProps {
