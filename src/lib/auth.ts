@@ -62,6 +62,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         });
 
         if (dbUser) {
+          // Sync admin status: if user should be admin but isn't, update them
+          const shouldBeAdmin = dbUser.email && adminEmails.includes(dbUser.email.toLowerCase());
+          if (shouldBeAdmin && !dbUser.isAdmin) {
+            await db
+              .update(users)
+              .set({ isAdmin: true })
+              .where(eq(users.id, dbUser.id));
+            dbUser.isAdmin = true;
+          }
+
           const player = await db.query.players.findFirst({
             where: eq(players.userId, dbUser.id),
           });

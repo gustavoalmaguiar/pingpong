@@ -30,7 +30,13 @@ export const CHANNELS = {
   LEADERBOARD: "leaderboard",
   MATCHES: "matches",
   CHALLENGES: "challenges",
+  TOURNAMENTS: "tournaments",
 } as const;
+
+// Dynamic channel for specific tournament
+export function getTournamentChannel(tournamentId: string) {
+  return `tournament-${tournamentId}`;
+}
 
 // Event names
 export const EVENTS = {
@@ -40,4 +46,40 @@ export const EVENTS = {
   CHALLENGE_CREATED: "challenge:created",
   CHALLENGE_UPDATED: "challenge:updated",
   ACHIEVEMENT_UNLOCKED: "achievement:unlocked",
+  // Tournament events
+  TOURNAMENT_ENROLLMENT: "tournament:enrollment",
+  TOURNAMENT_WITHDRAWAL: "tournament:withdrawal",
+  TOURNAMENT_STARTED: "tournament:started",
+  TOURNAMENT_MATCH_COMPLETED: "tournament:match:completed",
+  TOURNAMENT_BRACKET_UPDATE: "tournament:bracket:update",
+  TOURNAMENT_COMPLETED: "tournament:completed",
 } as const;
+
+// Type definitions for tournament events
+export interface TournamentEnrollmentEvent {
+  tournamentId: string;
+  playerId: string;
+  playerName: string;
+  enrollmentCount: number;
+}
+
+export interface TournamentMatchCompletedEvent {
+  tournamentId: string;
+  matchId: string;
+  roundId: string;
+  winnerId: string;
+  loserId: string;
+  scores: string;
+}
+
+export interface TournamentBracketUpdateEvent {
+  tournamentId: string;
+  currentRound: number;
+  totalRounds: number;
+}
+
+export interface TournamentCompletedEvent {
+  tournamentId: string;
+  championId: string;
+  championName: string;
+}

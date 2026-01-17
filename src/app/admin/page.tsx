@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getAdminStats, getAllPlayersAdmin, getAllMatchesAdmin } from "@/actions/admin";
+import { getTournaments } from "@/actions/tournaments";
 import { AdminDashboardClient } from "./admin-client";
 
 export default async function AdminPage() {
@@ -14,10 +15,11 @@ export default async function AdminPage() {
     redirect("/");
   }
 
-  const [stats, players, matches] = await Promise.all([
+  const [stats, players, matches, tournaments] = await Promise.all([
     getAdminStats(),
     getAllPlayersAdmin(),
     getAllMatchesAdmin(30),
+    getTournaments(),
   ]);
 
   return (
@@ -25,6 +27,7 @@ export default async function AdminPage() {
       stats={stats}
       players={players}
       matches={matches}
+      tournaments={tournaments}
     />
   );
 }

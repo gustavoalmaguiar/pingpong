@@ -1,8 +1,8 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { matches, players, users } from "@/lib/db/schema";
-import { eq, desc, or, sql } from "drizzle-orm";
+import { matches, players, users, tournamentMatches, tournaments } from "@/lib/db/schema";
+import { eq, desc, or, sql, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { calculateEloChange, calculateDoublesEloChange } from "@/lib/elo";
 import { calculateMatchXp, calculateLevel } from "@/lib/xp";
@@ -296,9 +296,55 @@ export async function getRecentMatches(limit = 10) {
     return result[0];
   };
 
+  // Collect all tournament match IDs to batch fetch tournament info
+  const tournamentMatchIds = recentMatches
+    .filter((m) => m.tournamentMatchId)
+    .map((m) => m.tournamentMatchId!);
+
+  // Batch fetch tournament info
+  const tournamentInfoMap = new Map<
+    string,
+    { id: string; name: string; format: string }
+  >();
+
+  if (tournamentMatchIds.length > 0) {
+    const tournamentMatchData = await db
+      .select({
+        tournamentMatchId: tournamentMatches.id,
+        tournamentId: tournaments.id,
+        tournamentName: tournaments.name,
+        tournamentFormat: tournaments.format,
+      })
+      .from(tournamentMatches)
+      .innerJoin(tournaments, eq(tournamentMatches.tournamentId, tournaments.id))
+      .where(inArray(tournamentMatches.id, tournamentMatchIds));
+
+    for (const data of tournamentMatchData) {
+      tournamentInfoMap.set(data.tournamentMatchId, {
+        id: data.tournamentId,
+        name: data.tournamentName,
+        format: data.tournamentFormat,
+      });
+    }
+  }
+
+  // Batch fetch logged-by user info
+  const loggedByUserIds = [...new Set(recentMatches.map((m) => m.loggedBy))];
+  const loggerUsers = await db
+    .select({ id: users.id, name: users.name, image: users.image })
+    .from(users)
+    .where(inArray(users.id, loggedByUserIds));
+  const loggerUserMap = new Map(loggerUsers.map((u) => [u.id, u]));
+
   // Fetch player details for each match
   const matchesWithPlayers = await Promise.all(
     recentMatches.map(async (match) => {
+      const tournament = match.tournamentMatchId
+        ? tournamentInfoMap.get(match.tournamentMatchId) || null
+        : null;
+
+      const loggedByUser = loggerUserMap.get(match.loggedBy) ?? null;
+
       if (match.type === "singles") {
         const [winner, loser] = await Promise.all([
           getPlayerWithAvatar(match.winnerId!),
@@ -308,6 +354,8 @@ export async function getRecentMatches(limit = 10) {
           ...match,
           winner,
           loser,
+          tournament,
+          loggedByUser,
         };
       } else {
         const [w1, w2, l1, l2] = await Promise.all([
@@ -320,6 +368,8 @@ export async function getRecentMatches(limit = 10) {
           ...match,
           winnerTeam: [w1, w2],
           loserTeam: [l1, l2],
+          tournament,
+          loggedByUser,
         };
       }
     })

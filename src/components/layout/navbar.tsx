@@ -8,16 +8,15 @@ import {
   Home,
   Trophy,
   Users,
-  Swords,
   Settings,
   LogOut,
   Gamepad2,
   Medal,
+  Swords,
   type LucideIcon,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { getPendingChallengesCount } from "@/actions/challenges";
 
 interface NavItem {
   icon: LucideIcon;
@@ -29,9 +28,9 @@ interface NavItem {
 const navItems: NavItem[] = [
   { icon: Home, label: "Dashboard", href: "/" },
   { icon: Trophy, label: "Leaderboard", href: "/leaderboard" },
+  { icon: Swords, label: "Tournaments", href: "/tournaments" },
   { icon: Gamepad2, label: "Matches", href: "/matches" },
   { icon: Users, label: "Players", href: "/players" },
-  { icon: Swords, label: "Challenges", href: "/challenges" },
   { icon: Medal, label: "Achievements", href: "/achievements" },
   { icon: Settings, label: "Admin", href: "/admin", adminOnly: true },
 ];
@@ -40,21 +39,6 @@ export function Navbar() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const [pendingChallengesCount, setPendingChallengesCount] = useState(0);
-
-  // Fetch pending challenges count
-  useEffect(() => {
-    if (session?.user?.playerId) {
-      getPendingChallengesCount().then(setPendingChallengesCount);
-
-      // Poll every 30 seconds
-      const interval = setInterval(() => {
-        getPendingChallengesCount().then(setPendingChallengesCount);
-      }, 30000);
-
-      return () => clearInterval(interval);
-    }
-  }, [session?.user?.playerId]);
 
   const filteredItems = navItems.filter(
     (item) => !item.adminOnly || session?.user?.isAdmin
@@ -100,17 +84,6 @@ export function Navbar() {
                 )}
 
                 <Icon className="relative z-10 h-5 w-5" strokeWidth={1.5} />
-
-                {/* Badge for Challenges */}
-                {item.href === "/challenges" && pendingChallengesCount > 0 && (
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="absolute -right-0.5 -top-0.5 z-20 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white"
-                  >
-                    {pendingChallengesCount > 9 ? "9+" : pendingChallengesCount}
-                  </motion.div>
-                )}
 
                 {/* Hover indicator line */}
                 <AnimatePresence>

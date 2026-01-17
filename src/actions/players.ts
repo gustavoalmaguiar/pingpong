@@ -66,6 +66,11 @@ export async function getPlayerById(id: string) {
       createdAt: players.createdAt,
       avatarUrl: users.image,
       email: users.email,
+      // Tournament stats
+      tournamentMatchesPlayed: players.tournamentMatchesPlayed,
+      tournamentMatchesWon: players.tournamentMatchesWon,
+      tournamentsPlayed: players.tournamentsPlayed,
+      tournamentsWon: players.tournamentsWon,
     })
     .from(players)
     .leftJoin(users, eq(players.userId, users.id))
