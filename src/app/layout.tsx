@@ -19,8 +19,8 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Tournament Tracker",
-  description: "Premium ping-pong tournament tracking",
+  title: "much. | Ping-Pong Hub",
+  description: "The official ping-pong hub for much. Consulting",
 };
 
 export const viewport: Viewport = {
