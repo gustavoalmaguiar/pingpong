@@ -5,6 +5,7 @@ import { Providers } from "@/components/layout/providers";
 import { Navbar } from "@/components/layout/navbar";
 import { FloatingActionButton } from "@/components/match";
 import { auth } from "@/lib/auth";
+import { config, isAuthRequired } from "@/lib/config";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -19,8 +20,8 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "much. | Ping-Pong Hub",
-  description: "The official ping-pong hub for much. Consulting",
+  title: config.branding.title,
+  description: config.branding.description,
 };
 
 export const viewport: Viewport = {
@@ -34,6 +35,9 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const session = await auth();
+  // In demo mode (auth not required), always show UI elements
+  // In company mode (auth required), only show when authenticated
+  const showAppChrome = !isAuthRequired() || !!session;
 
   return (
     <html lang="en" className="dark">
@@ -41,11 +45,11 @@ export default async function RootLayout({
         className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}
       >
         <Providers>
-          {session && <Navbar />}
-          <main className={session ? "pl-16" : ""}>
+          {showAppChrome && <Navbar />}
+          <main className={showAppChrome ? "pl-16" : ""}>
             {children}
           </main>
-          {session && <FloatingActionButton />}
+          {showAppChrome && <FloatingActionButton />}
         </Providers>
       </body>
     </html>

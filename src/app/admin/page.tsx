@@ -1,17 +1,18 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { getEffectiveSession } from "@/lib/auth";
+import { isAuthRequired } from "@/lib/config";
 import { getAdminStats, getAllPlayersAdmin, getAllMatchesAdmin } from "@/actions/admin";
 import { getTournaments } from "@/actions/tournaments";
 import { AdminDashboardClient } from "./admin-client";
 
 export default async function AdminPage() {
-  const session = await auth();
+  const session = await getEffectiveSession();
 
-  if (!session) {
+  if (!session && isAuthRequired()) {
     redirect("/auth/signin");
   }
 
-  if (!session.user.isAdmin) {
+  if (!session?.user?.isAdmin) {
     redirect("/");
   }
 

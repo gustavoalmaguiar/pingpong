@@ -3,7 +3,6 @@
 import { db } from "@/lib/db";
 import { achievements, playerAchievements, players, users } from "@/lib/db/schema";
 import { eq, desc, sql } from "drizzle-orm";
-import { auth } from "@/lib/auth";
 import { ACHIEVEMENTS, checkNewAchievements, type PlayerStats } from "@/lib/achievements";
 import { pusherServer, CHANNELS, EVENTS } from "@/lib/pusher";
 import { calculateLevel } from "@/lib/xp";

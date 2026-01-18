@@ -1,5 +1,6 @@
 import { redirect, notFound } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { getEffectiveSession } from "@/lib/auth";
+import { isAuthRequired } from "@/lib/config";
 import { getTournament } from "@/actions/tournaments";
 import { getEnrollmentStatus } from "@/actions/tournament-enrollment";
 import { TournamentDetailClient } from "./tournament-detail-client";
@@ -9,9 +10,9 @@ interface TournamentDetailPageProps {
 }
 
 export default async function TournamentDetailPage({ params }: TournamentDetailPageProps) {
-  const session = await auth();
+  const session = await getEffectiveSession();
 
-  if (!session) {
+  if (!session && isAuthRequired()) {
     redirect("/auth/signin");
   }
 
@@ -29,8 +30,8 @@ export default async function TournamentDetailPage({ params }: TournamentDetailP
       tournament={tournament}
       isEnrolled={isEnrolled}
       myEnrollment={enrollment}
-      currentPlayerId={session.user.playerId}
-      isAdmin={session.user.isAdmin}
+      currentPlayerId={session?.user?.playerId}
+      isAdmin={session?.user?.isAdmin}
     />
   );
 }

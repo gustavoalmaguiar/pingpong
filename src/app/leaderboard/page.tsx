@@ -1,12 +1,13 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { getEffectiveSession } from "@/lib/auth";
+import { isAuthRequired } from "@/lib/config";
 import { getPlayers } from "@/actions/players";
 import { LeaderboardClient } from "./leaderboard-client";
 
 export default async function LeaderboardPage() {
-  const session = await auth();
+  const session = await getEffectiveSession();
 
-  if (!session) {
+  if (!session && isAuthRequired()) {
     redirect("/auth/signin");
   }
 
@@ -15,7 +16,7 @@ export default async function LeaderboardPage() {
   return (
     <LeaderboardClient
       initialPlayers={players}
-      currentPlayerId={session.user.playerId}
+      currentPlayerId={session?.user?.playerId}
     />
   );
 }

@@ -3,7 +3,7 @@
 import { db } from "@/lib/db";
 import { matches, players, users, tournamentMatches, tournaments } from "@/lib/db/schema";
 import { eq, desc, or, sql, inArray } from "drizzle-orm";
-import { auth } from "@/lib/auth";
+import { getEffectiveSession } from "@/lib/auth";
 import { calculateEloChange, calculateDoublesEloChange } from "@/lib/elo";
 import { calculateMatchXp, calculateLevel } from "@/lib/xp";
 import { pusherServer, CHANNELS, EVENTS } from "@/lib/pusher";
@@ -25,7 +25,7 @@ interface LogDoublesMatchInput {
 }
 
 export async function logSinglesMatch(input: LogSinglesMatchInput) {
-  const session = await auth();
+  const session = await getEffectiveSession();
   if (!session?.user?.id) {
     throw new Error("Not authenticated");
   }
@@ -143,7 +143,7 @@ export async function logSinglesMatch(input: LogSinglesMatchInput) {
 }
 
 export async function logDoublesMatch(input: LogDoublesMatchInput) {
-  const session = await auth();
+  const session = await getEffectiveSession();
   if (!session?.user?.id) {
     throw new Error("Not authenticated");
   }

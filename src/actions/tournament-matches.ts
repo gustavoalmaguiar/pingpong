@@ -11,7 +11,7 @@ import {
   type TournamentMatch,
 } from "@/lib/db/schema";
 import { eq, and, or, asc, sql } from "drizzle-orm";
-import { auth } from "@/lib/auth";
+import { getEffectiveSession } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import {
   calculateTournamentEloChange,
@@ -26,7 +26,7 @@ import { _generateKnockoutStageInternal } from "./tournament-bracket";
 import { checkAndAwardAchievements } from "./achievements";
 
 async function requireAdmin() {
-  const session = await auth();
+  const session = await getEffectiveSession();
   if (!session?.user?.isAdmin) {
     throw new Error("Unauthorized: Admin access required");
   }
@@ -445,7 +445,7 @@ export async function recordWalkover(
  * Get upcoming matches for a player
  */
 export async function getUpcomingMatches(playerId: string) {
-  const session = await auth();
+  const session = await getEffectiveSession();
   if (!session?.user) {
     throw new Error("Unauthorized");
   }
@@ -1248,7 +1248,7 @@ export async function setMatchBestOf(
  * Used by the UI to display the current bestOf configuration
  */
 export async function getMatchEffectiveBestOf(matchId: string): Promise<number> {
-  const session = await auth();
+  const session = await getEffectiveSession();
   if (!session?.user) {
     throw new Error("Unauthorized");
   }

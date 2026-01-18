@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { getEffectiveSession } from "@/lib/auth";
+import { isAuthRequired } from "@/lib/config";
 import {
   getAllAchievements,
   getPlayerAchievements,
@@ -10,9 +11,9 @@ import { ACHIEVEMENTS } from "@/lib/achievements";
 import { AchievementsClient } from "./achievements-client";
 
 export default async function AchievementsPage() {
-  const session = await auth();
+  const session = await getEffectiveSession();
 
-  if (!session) {
+  if (!session && isAuthRequired()) {
     redirect("/auth/signin");
   }
 

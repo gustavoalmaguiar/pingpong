@@ -3,7 +3,7 @@
 import { db } from "@/lib/db";
 import { players, users } from "@/lib/db/schema";
 import { eq, desc, asc, gt } from "drizzle-orm";
-import { auth } from "@/lib/auth";
+import { getEffectiveSession } from "@/lib/auth";
 import { generateUniqueSlug } from "@/lib/slug";
 import { revalidatePath } from "next/cache";
 
@@ -117,14 +117,14 @@ export async function getPlayerBySlug(slug: string) {
 }
 
 export async function getCurrentPlayer() {
-  const session = await auth();
+  const session = await getEffectiveSession();
   if (!session?.user?.playerId) return null;
 
   return getPlayerById(session.user.playerId);
 }
 
 export async function updatePlayerName(displayName: string) {
-  const session = await auth();
+  const session = await getEffectiveSession();
   if (!session?.user?.playerId) {
     throw new Error("Not authenticated");
   }

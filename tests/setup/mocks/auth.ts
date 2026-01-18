@@ -40,6 +40,11 @@ export async function auth() {
   };
 }
 
+// Mock getEffectiveSession - same as auth for tests
+export async function getEffectiveSession() {
+  return auth();
+}
+
 // Mock sign in/out
 export async function signIn() {
   return { ok: true };

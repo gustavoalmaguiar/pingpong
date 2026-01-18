@@ -3,11 +3,11 @@
 import { db } from "@/lib/db";
 import { matches, players, users } from "@/lib/db/schema";
 import { eq, desc, count, sql } from "drizzle-orm";
-import { auth } from "@/lib/auth";
+import { getEffectiveSession } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 
 async function requireAdmin() {
-  const session = await auth();
+  const session = await getEffectiveSession();
   if (!session?.user?.isAdmin) {
     throw new Error("Unauthorized: Admin access required");
   }

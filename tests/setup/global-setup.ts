@@ -39,14 +39,32 @@ vi.mock('@/lib/pusher', async () => {
 
 // Mock @/lib/auth to use our mock
 vi.mock('@/lib/auth', async () => {
-  const { auth, signIn, signOut, handlers } = await import('./mocks/auth');
+  const { auth, getEffectiveSession, signIn, signOut, handlers } = await import('./mocks/auth');
   return {
     auth,
+    getEffectiveSession,
     signIn,
     signOut,
     handlers,
   };
 });
+
+// Mock @/lib/config to use test defaults
+vi.mock('@/lib/config', () => ({
+  config: {
+    mode: 'company' as const,
+    branding: {
+      title: 'Test Ping-Pong Hub',
+      description: 'Test ping-pong tracking app',
+      company: 'Test Company',
+    },
+    auth: {
+      required: true,
+    },
+  },
+  isAuthRequired: () => true,
+  isDemoMode: () => false,
+}));
 
 // Store database instance globally
 let dbInitialized = false;

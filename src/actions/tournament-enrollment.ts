@@ -8,12 +8,12 @@ import {
   type TournamentEnrollment,
 } from "@/lib/db/schema";
 import { eq, and, count } from "drizzle-orm";
-import { auth } from "@/lib/auth";
+import { getEffectiveSession } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { pusherServer, getTournamentChannel, CHANNELS, EVENTS } from "@/lib/pusher";
 
 async function requireAuth() {
-  const session = await auth();
+  const session = await getEffectiveSession();
   if (!session?.user?.playerId) {
     throw new Error("Unauthorized: Please sign in");
   }
@@ -208,7 +208,7 @@ export async function getEnrollmentStatus(tournamentId: string): Promise<{
   isEnrolled: boolean;
   enrollment: TournamentEnrollment | null;
 }> {
-  const session = await auth();
+  const session = await getEffectiveSession();
 
   if (!session?.user?.playerId) {
     return { isEnrolled: false, enrollment: null };
@@ -288,7 +288,7 @@ export async function adminSetSeed(
   enrollmentId: string,
   seed: number
 ): Promise<void> {
-  const session = await auth();
+  const session = await getEffectiveSession();
   if (!session?.user?.isAdmin) {
     throw new Error("Unauthorized: Admin access required");
   }
@@ -326,7 +326,7 @@ export async function adminSwapSeeds(
   enrollment1Id: string,
   enrollment2Id: string
 ): Promise<void> {
-  const session = await auth();
+  const session = await getEffectiveSession();
   if (!session?.user?.isAdmin) {
     throw new Error("Unauthorized: Admin access required");
   }
@@ -373,7 +373,7 @@ export async function adminSwapSeeds(
  * Admin: Remove a player from a tournament
  */
 export async function adminRemoveEnrollment(enrollmentId: string): Promise<void> {
-  const session = await auth();
+  const session = await getEffectiveSession();
   if (!session?.user?.isAdmin) {
     throw new Error("Unauthorized: Admin access required");
   }
@@ -402,7 +402,7 @@ export async function adminRemoveEnrollment(enrollmentId: string): Promise<void>
  * Get all tournament IDs the current player is enrolled in
  */
 export async function getMyEnrolledTournamentIds(): Promise<string[]> {
-  const session = await auth();
+  const session = await getEffectiveSession();
 
   if (!session?.user?.playerId) {
     return [];

@@ -1,5 +1,6 @@
 import { redirect, notFound } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { getEffectiveSession } from "@/lib/auth";
+import { isAuthRequired } from "@/lib/config";
 import { getPlayerBySlug, getPlayers } from "@/actions/players";
 import { getPlayerMatches } from "@/actions/matches";
 import { getPlayerAchievements, getAllAchievements } from "@/actions/achievements";
@@ -11,9 +12,9 @@ interface PlayerPageProps {
 
 export default async function PlayerPage({ params }: PlayerPageProps) {
   const { slug } = await params;
-  const session = await auth();
+  const session = await getEffectiveSession();
 
-  if (!session) {
+  if (!session && isAuthRequired()) {
     redirect("/auth/signin");
   }
 
@@ -61,7 +62,7 @@ export default async function PlayerPage({ params }: PlayerPageProps) {
     .sort((a, b) => (b.wins + b.losses) - (a.wins + a.losses))
     .slice(0, 5);
 
-  const isOwnProfile = session.user.playerId === player.id;
+  const isOwnProfile = session?.user?.playerId === player.id;
 
   return (
     <PlayerProfileClient

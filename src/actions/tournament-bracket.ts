@@ -10,7 +10,7 @@ import {
   players,
 } from "@/lib/db/schema";
 import { eq, and, or } from "drizzle-orm";
-import { auth } from "@/lib/auth";
+import { getEffectiveSession } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import {
   generateSingleEliminationBracket,
@@ -25,7 +25,7 @@ import { pusherServer, getTournamentChannel, CHANNELS, EVENTS } from "@/lib/push
 import { getRoundDefaultBestOf } from "@/lib/bestof";
 
 async function requireAdmin() {
-  const session = await auth();
+  const session = await getEffectiveSession();
   if (!session?.user?.isAdmin) {
     throw new Error("Unauthorized: Admin access required");
   }
@@ -381,7 +381,7 @@ export async function startTournament(tournamentId: string): Promise<void> {
  * Get bracket data for visualization
  */
 export async function getBracket(tournamentId: string) {
-  const session = await auth();
+  const session = await getEffectiveSession();
   if (!session?.user) {
     throw new Error("Unauthorized");
   }

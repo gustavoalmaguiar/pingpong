@@ -12,11 +12,12 @@ import {
   type NewTournament,
 } from "@/lib/db/schema";
 import { eq, desc, and, or, count, sql } from "drizzle-orm";
-import { auth } from "@/lib/auth";
+import { getEffectiveSession } from "@/lib/auth";
+import { isAuthRequired } from "@/lib/config";
 import { revalidatePath } from "next/cache";
 
 async function requireAdmin() {
-  const session = await auth();
+  const session = await getEffectiveSession();
   if (!session?.user?.isAdmin) {
     throw new Error("Unauthorized: Admin access required");
   }
@@ -24,7 +25,8 @@ async function requireAdmin() {
 }
 
 async function requireAuth() {
-  const session = await auth();
+  const session = await getEffectiveSession();
+  // In demo mode, session is always available
   if (!session?.user) {
     throw new Error("Unauthorized: Please sign in");
   }

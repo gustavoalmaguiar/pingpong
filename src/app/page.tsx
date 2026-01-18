@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { getEffectiveSession } from "@/lib/auth";
+import { isAuthRequired } from "@/lib/config";
 import { getLeaderboard, getCurrentPlayer, getPlayers, getHotStreaks } from "@/actions/players";
 import { getRecentMatches, getPlayerMatches, getHeadToHeadStats } from "@/actions/matches";
 import { getRecentAchievements } from "@/actions/achievements";
@@ -8,9 +9,10 @@ import { getEnrollmentStatus } from "@/actions/tournament-enrollment";
 import { DashboardClient } from "./dashboard-client";
 
 export default async function DashboardPage() {
-  const session = await auth();
+  const session = await getEffectiveSession();
 
-  if (!session) {
+  // Only redirect to signin if auth is required and user is not authenticated
+  if (!session && isAuthRequired()) {
     redirect("/auth/signin");
   }
 

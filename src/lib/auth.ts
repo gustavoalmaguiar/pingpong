@@ -5,6 +5,8 @@ import { db } from "./db";
 import { users, players, accounts, sessions, verificationTokens } from "./db/schema";
 import { eq } from "drizzle-orm";
 import { generateUniqueSlug } from "./slug";
+import { isAuthRequired } from "./config";
+import { getDemoSession, type DemoSession } from "./demo-session";
 
 // Get admin emails from environment variable
 const adminEmails = (process.env.ADMIN_EMAILS || "")
@@ -127,3 +129,32 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     signIn: "/auth/signin",
   },
 });
+
+/**
+ * Get the effective session - either from NextAuth or demo mode
+ * Use this instead of `auth()` in server actions and pages
+ */
+export async function getEffectiveSession(): Promise<{
+  user: {
+    id: string;
+    email?: string | null;
+    name?: string | null;
+    image?: string | null;
+    playerId?: string;
+    playerSlug?: string;
+    isAdmin?: boolean;
+  };
+} | null> {
+  // First try real auth
+  const session = await auth();
+  if (session) {
+    return session;
+  }
+
+  // In demo mode, return demo session
+  if (!isAuthRequired()) {
+    return getDemoSession();
+  }
+
+  return null;
+}
