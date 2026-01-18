@@ -5,6 +5,7 @@ import { DrizzleAdapter } from "@auth/drizzle-adapter";
 import { db } from "./db";
 import { users, players, accounts, sessions, verificationTokens } from "./db/schema";
 import { eq } from "drizzle-orm";
+import { generateUniqueSlug } from "./slug";
 
 // Get admin emails from environment variable
 const adminEmails = (process.env.ADMIN_EMAILS || "")
@@ -45,9 +46,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
           if (!existingPlayer) {
             // Create player profile
+            const displayName = user.name || user.email.split("@")[0];
+            const slug = await generateUniqueSlug(displayName);
             await db.insert(players).values({
               userId: existingUser.id,
-              displayName: user.name || user.email.split("@")[0],
+              displayName,
+              slug,
             });
           }
         }
@@ -78,14 +82,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
           // If no player exists yet, create one
           if (!player) {
+            const displayName = dbUser.name || dbUser.email?.split("@")[0] || "Player";
+            const slug = await generateUniqueSlug(displayName);
             const [newPlayer] = await db.insert(players).values({
               userId: dbUser.id,
-              displayName: dbUser.name || dbUser.email?.split("@")[0] || "Player",
+              displayName,
+              slug,
             }).returning();
 
             session.user.playerId = newPlayer.id;
+            session.user.playerSlug = newPlayer.slug;
           } else {
             session.user.playerId = player.id;
+            session.user.playerSlug = player.slug;
           }
 
           session.user.id = dbUser.id;
@@ -110,9 +119,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
 
       // Create player profile
+      const displayName = user.name || user.email?.split("@")[0] || "Player";
+      const slug = await generateUniqueSlug(displayName);
       await db.insert(players).values({
         userId: user.id,
-        displayName: user.name || user.email?.split("@")[0] || "Player",
+        displayName,
+        slug,
       });
     },
   },

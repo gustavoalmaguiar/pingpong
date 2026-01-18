@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 interface HeadToHeadRecord {
   opponent: {
     id: string;
+    slug: string;
     displayName: string;
     elo: number;
     avatarUrl: string | null;
@@ -124,7 +125,7 @@ function RecordRow({
     >
       <div className="flex items-center gap-3">
         {/* Opponent Avatar */}
-        <Link href={`/players/${opponent.id}`}>
+        <Link href={`/players/${opponent.slug}`}>
           <Avatar className="h-9 w-9 border border-[#262626] transition-all hover:border-[#404040]">
             <AvatarImage src={opponent.avatarUrl || undefined} />
             <AvatarFallback className="bg-[#1a1a1a] text-xs">
@@ -137,7 +138,7 @@ function RecordRow({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <Link
-              href={`/players/${opponent.id}`}
+              href={`/players/${opponent.slug}`}
               className="truncate text-sm font-medium text-white hover:underline"
             >
               {opponent.displayName}

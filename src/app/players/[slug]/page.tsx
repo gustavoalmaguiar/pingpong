@@ -1,43 +1,44 @@
 import { redirect, notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { getPlayerById, getPlayers } from "@/actions/players";
+import { getPlayerBySlug, getPlayers } from "@/actions/players";
 import { getPlayerMatches } from "@/actions/matches";
 import { getPlayerAchievements, getAllAchievements } from "@/actions/achievements";
 import { PlayerProfileClient } from "./player-profile-client";
 
 interface PlayerPageProps {
-  params: Promise<{ id: string }>;
+  params: Promise<{ slug: string }>;
 }
 
 export default async function PlayerPage({ params }: PlayerPageProps) {
-  const { id } = await params;
+  const { slug } = await params;
   const session = await auth();
 
   if (!session) {
     redirect("/auth/signin");
   }
 
-  const [player, matches, allPlayers, playerAchievements, allAchievements] = await Promise.all([
-    getPlayerById(id),
-    getPlayerMatches(id, 20),
-    getPlayers(),
-    getPlayerAchievements(id),
-    getAllAchievements(),
-  ]);
+  const player = await getPlayerBySlug(slug);
 
   if (!player) {
     notFound();
   }
 
+  const [matches, allPlayers, playerAchievements, allAchievements] = await Promise.all([
+    getPlayerMatches(player.id, 20),
+    getPlayers(),
+    getPlayerAchievements(player.id),
+    getAllAchievements(),
+  ]);
+
   // Calculate rank
-  const rank = allPlayers.findIndex((p) => p.id === id) + 1;
+  const rank = allPlayers.findIndex((p) => p.id === player.id) + 1;
 
   // Calculate head-to-head records
   const headToHead: Record<string, { wins: number; losses: number; player: typeof allPlayers[0] }> = {};
 
   for (const match of matches) {
     if (match.type === "singles") {
-      const opponentId = match.winnerId === id ? match.loserId : match.winnerId;
+      const opponentId = match.winnerId === player.id ? match.loserId : match.winnerId;
       if (opponentId) {
         if (!headToHead[opponentId]) {
           const opponent = allPlayers.find((p) => p.id === opponentId);
@@ -46,7 +47,7 @@ export default async function PlayerPage({ params }: PlayerPageProps) {
           }
         }
         if (headToHead[opponentId]) {
-          if (match.winnerId === id) {
+          if (match.winnerId === player.id) {
             headToHead[opponentId].wins++;
           } else {
             headToHead[opponentId].losses++;
@@ -60,7 +61,7 @@ export default async function PlayerPage({ params }: PlayerPageProps) {
     .sort((a, b) => (b.wins + b.losses) - (a.wins + a.losses))
     .slice(0, 5);
 
-  const isOwnProfile = session.user.playerId === id;
+  const isOwnProfile = session.user.playerId === player.id;
 
   return (
     <PlayerProfileClient

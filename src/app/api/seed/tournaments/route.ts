@@ -8,7 +8,42 @@ import {
   tournamentEnrollments,
 } from "@/lib/db/schema";
 import { startTournament } from "@/actions/tournament-bracket";
-import { eq } from "drizzle-orm";
+import { eq, like } from "drizzle-orm";
+
+// Simple slugify for seeding
+function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+// Generate unique slug
+async function generateUniqueSlug(displayName: string): Promise<string> {
+  const baseSlug = slugify(displayName);
+  if (!baseSlug) {
+    return `player-${crypto.randomUUID().slice(0, 8)}`;
+  }
+
+  const existingSlugs = await db
+    .select({ slug: players.slug })
+    .from(players)
+    .where(like(players.slug, `${baseSlug}%`));
+
+  const slugSet = new Set(existingSlugs.map((p) => p.slug));
+  if (!slugSet.has(baseSlug)) {
+    return baseSlug;
+  }
+
+  let counter = 1;
+  while (slugSet.has(`${baseSlug}-${counter}`)) {
+    counter++;
+  }
+  return `${baseSlug}-${counter}`;
+}
 
 // Get or create a test admin user for dev bypass
 async function getTestAdminUserId(): Promise<string> {
@@ -255,11 +290,13 @@ async function getOrCreateTestPlayers(count: number) {
 
     // Create player with varied ELO (800-1400 range)
     const elo = 800 + Math.floor(Math.random() * 600);
+    const slug = await generateUniqueSlug(displayName);
     const [player] = await db
       .insert(players)
       .values({
         userId: user.id,
         displayName,
+        slug,
         elo,
       })
       .returning();

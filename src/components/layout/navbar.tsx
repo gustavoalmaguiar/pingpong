@@ -130,7 +130,7 @@ export function Navbar() {
 
           {/* User avatar */}
           <Link
-            href={session.user.playerId ? `/players/${session.user.playerId}` : "#"}
+            href={session.user.playerSlug ? `/players/${session.user.playerSlug}` : "#"}
             className="group relative"
           >
             <motion.div

@@ -4,6 +4,8 @@ import { db } from "@/lib/db";
 import { players, users } from "@/lib/db/schema";
 import { eq, desc, asc, gt } from "drizzle-orm";
 import { auth } from "@/lib/auth";
+import { generateUniqueSlug } from "@/lib/slug";
+import { revalidatePath } from "next/cache";
 
 export async function getPlayers() {
   const allPlayers = await db
@@ -11,6 +13,7 @@ export async function getPlayers() {
       id: players.id,
       userId: players.userId,
       displayName: players.displayName,
+      slug: players.slug,
       elo: players.elo,
       xp: players.xp,
       level: players.level,
@@ -32,6 +35,7 @@ export async function getLeaderboard(limit = 10) {
     .select({
       id: players.id,
       displayName: players.displayName,
+      slug: players.slug,
       elo: players.elo,
       matchesWon: players.matchesWon,
       matchesPlayed: players.matchesPlayed,
@@ -56,6 +60,7 @@ export async function getPlayerById(id: string) {
       id: players.id,
       userId: players.userId,
       displayName: players.displayName,
+      slug: players.slug,
       elo: players.elo,
       xp: players.xp,
       level: players.level,
@@ -80,6 +85,37 @@ export async function getPlayerById(id: string) {
   return player[0] || null;
 }
 
+export async function getPlayerBySlug(slug: string) {
+  const player = await db
+    .select({
+      id: players.id,
+      userId: players.userId,
+      displayName: players.displayName,
+      slug: players.slug,
+      elo: players.elo,
+      xp: players.xp,
+      level: players.level,
+      matchesPlayed: players.matchesPlayed,
+      matchesWon: players.matchesWon,
+      currentStreak: players.currentStreak,
+      bestStreak: players.bestStreak,
+      createdAt: players.createdAt,
+      avatarUrl: users.image,
+      email: users.email,
+      // Tournament stats
+      tournamentMatchesPlayed: players.tournamentMatchesPlayed,
+      tournamentMatchesWon: players.tournamentMatchesWon,
+      tournamentsPlayed: players.tournamentsPlayed,
+      tournamentsWon: players.tournamentsWon,
+    })
+    .from(players)
+    .leftJoin(users, eq(players.userId, users.id))
+    .where(eq(players.slug, slug))
+    .limit(1);
+
+  return player[0] || null;
+}
+
 export async function getCurrentPlayer() {
   const session = await auth();
   if (!session?.user?.playerId) return null;
@@ -93,12 +129,21 @@ export async function updatePlayerName(displayName: string) {
     throw new Error("Not authenticated");
   }
 
+  // Generate a new unique slug for the updated name
+  const slug = await generateUniqueSlug(displayName, session.user.playerId);
+
   await db
     .update(players)
-    .set({ displayName, updatedAt: new Date() })
+    .set({ displayName, slug, updatedAt: new Date() })
     .where(eq(players.id, session.user.playerId));
 
-  return { success: true };
+  // Revalidate the player profile pages (old and new slug)
+  revalidatePath(`/players/${slug}`);
+  if (session.user.playerSlug) {
+    revalidatePath(`/players/${session.user.playerSlug}`);
+  }
+
+  return { success: true, slug };
 }
 
 export async function getHotStreaks(limit = 5) {
@@ -106,6 +151,7 @@ export async function getHotStreaks(limit = 5) {
     .select({
       id: players.id,
       displayName: players.displayName,
+      slug: players.slug,
       elo: players.elo,
       currentStreak: players.currentStreak,
       matchesWon: players.matchesWon,

@@ -12,6 +12,7 @@ import { formatDistanceToNow, formatFullDate } from "@/lib/format";
 
 interface Player {
   id: string;
+  slug: string;
   displayName: string;
   elo: number;
   avatarUrl?: string | null;
@@ -476,7 +477,7 @@ function PlayerDisplay({
 }) {
   return (
     <Link
-      href={`/players/${player.id}`}
+      href={`/players/${player.slug}`}
       className={cn(
         "flex items-center gap-3 rounded-xl px-3 py-2 transition-all duration-200 hover:bg-white/5",
         isWinner ? "flex-row-reverse text-right" : ""
@@ -537,7 +538,7 @@ function TeamDisplay({
     >
       <div className="flex -space-x-3">
         {players.map((player, i) => (
-          <Link key={player.id} href={`/players/${player.id}`}>
+          <Link key={player.id} href={`/players/${player.slug}`}>
             <Avatar
               className={cn(
                 "h-10 w-10 ring-2 transition-all duration-200 hover:z-10 hover:scale-110",
@@ -571,7 +572,7 @@ function TeamDisplay({
         {players.map((player, i) => (
           <Link
             key={player.id}
-            href={`/players/${player.id}`}
+            href={`/players/${player.slug}`}
             className={cn(
               "text-xs font-medium transition-colors hover:underline",
               isWinner ? "text-emerald-400" : "text-neutral-500"

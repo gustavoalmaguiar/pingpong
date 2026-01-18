@@ -24,6 +24,7 @@ import { EditProfileModal } from "@/components/profile/edit-profile-modal";
 
 interface Player {
   id: string;
+  slug: string;
   displayName: string;
   elo: number;
   xp: number;
@@ -64,6 +65,7 @@ interface HeadToHeadRecord {
   losses: number;
   player: {
     id: string;
+    slug: string;
     displayName: string;
     elo: number;
     avatarUrl: string | null;
@@ -459,7 +461,7 @@ export function PlayerProfileClient({
                       transition={{ delay: 0.35 + index * 0.05 }}
                     >
                       <Link
-                        href={`/players/${record.player.id}`}
+                        href={`/players/${record.player.slug}`}
                         className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-[#111]"
                       >
                         <Avatar className="h-8 w-8 border border-[#262626]">

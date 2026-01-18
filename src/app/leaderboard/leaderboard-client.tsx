@@ -20,6 +20,7 @@ import { getPlayers } from "@/actions/players";
 
 interface Player {
   id: string;
+  slug: string;
   displayName: string;
   elo: number;
   xp: number;
@@ -220,7 +221,7 @@ export function LeaderboardClient({
                     transition={{ duration: 0.2, delay: index * 0.02 }}
                   >
                     <Link
-                      href={`/players/${player.id}`}
+                      href={`/players/${player.slug}`}
                       className={cn(
                         "group flex items-center gap-4 px-6 py-4 transition-all hover:bg-[#111]",
                         isCurrentUser && "bg-white/[0.02]"

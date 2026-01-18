@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 
 interface Player {
   id: string;
+  slug: string;
   displayName: string;
   elo: number;
   currentStreak: number;
@@ -112,7 +113,7 @@ function StreakRow({
       transition={{ duration: 0.3, delay }}
     >
       <Link
-        href={`/players/${player.id}`}
+        href={`/players/${player.slug}`}
         className="group relative flex items-center gap-3 px-5 py-3 transition-colors hover:bg-[#111]"
       >
         {/* Top streaker glow effect */}

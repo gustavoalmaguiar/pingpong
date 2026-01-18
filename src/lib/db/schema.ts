@@ -114,6 +114,7 @@ export const players = pgTable("players", {
     .unique()
     .references(() => users.id, { onDelete: "cascade" }),
   displayName: text("display_name").notNull(),
+  slug: text("slug").notNull().unique(),
   elo: integer("elo").notNull().default(1000),
   xp: integer("xp").notNull().default(0),
   level: integer("level").notNull().default(1),

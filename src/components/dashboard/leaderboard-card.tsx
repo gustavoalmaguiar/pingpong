@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 
 interface LeaderboardPlayer {
   id: string;
+  slug: string;
   rank: number;
   displayName: string;
   elo: number;
@@ -70,7 +71,7 @@ export function LeaderboardCard({ players, currentPlayerId }: LeaderboardCardPro
               transition={{ duration: 0.3, delay: 0.1 + index * 0.03 }}
             >
               <Link
-                href={`/players/${player.id}`}
+                href={`/players/${player.slug}`}
                 className={cn(
                   "group grid grid-cols-[3rem_1fr_5rem_4rem_3rem] items-center gap-2 px-5 py-3 transition-all hover:bg-[#111]",
                   isCurrentUser && "bg-white/[0.02]"

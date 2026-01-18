@@ -17,6 +17,7 @@ interface RecentAchievement {
   id: string;
   earnedAt: Date;
   playerId: string;
+  playerSlug: string;
   playerName: string;
   playerAvatarUrl: string | null;
   achievementName: string;
@@ -119,7 +120,7 @@ function AchievementRow({
     >
       <div className="flex items-center gap-3">
         {/* Player Avatar */}
-        <Link href={`/players/${achievement.playerId}`}>
+        <Link href={`/players/${achievement.playerSlug}`}>
           <Avatar className="h-7 w-7 border border-[#262626] transition-all hover:border-[#404040]">
             <AvatarImage src={achievement.playerAvatarUrl || undefined} />
             <AvatarFallback className="bg-[#1a1a1a] text-[10px]">
@@ -132,7 +133,7 @@ function AchievementRow({
         <div className="flex-1 min-w-0">
           <p className="truncate text-[13px] text-[#a3a3a3]">
             <Link
-              href={`/players/${achievement.playerId}`}
+              href={`/players/${achievement.playerSlug}`}
               className="font-medium text-white hover:underline"
             >
               {achievement.playerName}

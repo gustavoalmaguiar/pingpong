@@ -1,5 +1,45 @@
 import { getTestDb } from '../db';
 import { users, players } from '@/lib/db/schema';
+import { like, ne, and } from 'drizzle-orm';
+
+// Simple slugify for test fixtures
+function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+// Generate unique slug for test fixtures
+async function generateTestSlug(db: Awaited<ReturnType<typeof getTestDb>>, displayName: string, excludePlayerId?: string): Promise<string> {
+  const baseSlug = slugify(displayName);
+  if (!baseSlug) {
+    return `player-${crypto.randomUUID().slice(0, 8)}`;
+  }
+
+  const existingSlugs = await db
+    .select({ slug: players.slug })
+    .from(players)
+    .where(
+      excludePlayerId
+        ? and(like(players.slug, `${baseSlug}%`), ne(players.id, excludePlayerId))
+        : like(players.slug, `${baseSlug}%`)
+    );
+
+  const slugSet = new Set(existingSlugs.map((p) => p.slug));
+  if (!slugSet.has(baseSlug)) {
+    return baseSlug;
+  }
+
+  let counter = 1;
+  while (slugSet.has(`${baseSlug}-${counter}`)) {
+    counter++;
+  }
+  return `${baseSlug}-${counter}`;
+}
 
 export interface CreatePlayerOptions {
   displayName?: string;
@@ -35,6 +75,7 @@ export async function createTestPlayer(options: CreatePlayerOptions = {}): Promi
   const userId = crypto.randomUUID();
   const playerId = crypto.randomUUID();
   const displayName = options.displayName || `Player ${playerId.slice(0, 8)}`;
+  const slug = await generateTestSlug(db, displayName);
 
   // Create user first
   const [user] = await db
@@ -55,6 +96,7 @@ export async function createTestPlayer(options: CreatePlayerOptions = {}): Promi
       id: playerId,
       userId,
       displayName,
+      slug,
       elo: options.elo ?? 1000,
       xp: options.xp ?? 0,
       level: options.level ?? 1,

@@ -148,6 +148,7 @@ export async function getRecentAchievements(limit = 8) {
       id: playerAchievements.id,
       earnedAt: playerAchievements.earnedAt,
       playerId: playerAchievements.playerId,
+      playerSlug: players.slug,
       playerName: players.displayName,
       playerAvatarUrl: users.image,
       achievementName: achievements.name,
@@ -169,6 +170,7 @@ export async function getAchievementLeaderboard(limit = 10) {
   const leaderboard = await db
     .select({
       playerId: playerAchievements.playerId,
+      playerSlug: players.slug,
       playerName: players.displayName,
       playerAvatarUrl: users.image,
       playerLevel: players.level,
@@ -177,7 +179,7 @@ export async function getAchievementLeaderboard(limit = 10) {
     .from(playerAchievements)
     .innerJoin(players, eq(playerAchievements.playerId, players.id))
     .leftJoin(users, eq(players.userId, users.id))
-    .groupBy(playerAchievements.playerId, players.displayName, users.image, players.level)
+    .groupBy(playerAchievements.playerId, players.slug, players.displayName, users.image, players.level)
     .orderBy(desc(sql`count(${playerAchievements.id})`))
     .limit(limit);
 

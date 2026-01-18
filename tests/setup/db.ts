@@ -76,6 +76,7 @@ const createTablesSql = `
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL UNIQUE REFERENCES "user"(id) ON DELETE CASCADE,
     display_name TEXT NOT NULL,
+    slug TEXT NOT NULL UNIQUE,
     elo INTEGER NOT NULL DEFAULT 1000,
     xp INTEGER NOT NULL DEFAULT 0,
     level INTEGER NOT NULL DEFAULT 1,

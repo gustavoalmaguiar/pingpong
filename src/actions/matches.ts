@@ -285,6 +285,7 @@ export async function getRecentMatches(limit = 10) {
     const result = await db
       .select({
         id: players.id,
+        slug: players.slug,
         displayName: players.displayName,
         elo: players.elo,
         avatarUrl: users.image,
@@ -457,6 +458,7 @@ export async function getHeadToHeadStats(playerId: string, limit = 5) {
   const opponents = await db
     .select({
       id: players.id,
+      slug: players.slug,
       displayName: players.displayName,
       elo: players.elo,
       avatarUrl: users.image,
@@ -469,7 +471,7 @@ export async function getHeadToHeadStats(playerId: string, limit = 5) {
   return h2hArray.map(h2h => {
     const opponent = opponents.find(o => o.id === h2h.opponentId);
     return {
-      opponent: opponent || { id: h2h.opponentId, displayName: "Unknown", elo: 0, avatarUrl: null },
+      opponent: opponent || { id: h2h.opponentId, slug: "unknown", displayName: "Unknown", elo: 0, avatarUrl: null },
       wins: h2h.wins,
       losses: h2h.losses,
       lastMatch: h2h.lastMatch,

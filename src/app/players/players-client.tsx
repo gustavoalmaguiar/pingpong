@@ -20,6 +20,7 @@ import { getLevelTier } from "@/lib/xp";
 interface Player {
   id: string;
   userId: string;
+  slug: string;
   displayName: string;
   elo: number;
   xp: number;
@@ -215,7 +216,7 @@ function PlayerCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.03, duration: 0.3 }}
     >
-      <Link href={`/players/${player.id}`}>
+      <Link href={`/players/${player.slug}`}>
         <div className="group relative overflow-hidden rounded-xl border border-[#1a1a1a] bg-[#0a0a0a] p-5 transition-all duration-300 hover:border-[#262626] hover:shadow-[0_0_30px_rgba(255,255,255,0.03)]">
           {/* Rank Badge */}
           {rank <= 3 && (

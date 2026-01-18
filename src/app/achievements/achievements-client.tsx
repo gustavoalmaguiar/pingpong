@@ -20,6 +20,7 @@ interface Achievement {
 
 interface LeaderboardEntry {
   playerId: string;
+  playerSlug: string;
   playerName: string;
   playerAvatarUrl: string | null;
   playerLevel: number;
@@ -372,7 +373,7 @@ function TopCollectors({
               transition={{ duration: 0.3, delay: 0.3 + index * 0.05 }}
             >
               <Link
-                href={`/players/${entry.playerId}`}
+                href={`/players/${entry.playerSlug}`}
                 className={cn(
                   "flex items-center gap-3 px-5 py-3 transition-colors hover:bg-[#111]",
                   entry.playerId === currentPlayerId && "bg-white/[0.02]"

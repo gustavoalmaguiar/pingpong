@@ -15,6 +15,7 @@ import type { Player } from "@/lib/db/schema";
 
 interface LeaderboardPlayer {
   id: string;
+  slug: string;
   rank: number;
   displayName: string;
   elo: number;
@@ -66,6 +67,7 @@ interface CurrentPlayer {
 
 interface HotStreakPlayer {
   id: string;
+  slug: string;
   displayName: string;
   elo: number;
   currentStreak: number;
@@ -77,6 +79,7 @@ interface RecentAchievementData {
   id: string;
   earnedAt: Date;
   playerId: string;
+  playerSlug: string;
   playerName: string;
   playerAvatarUrl: string | null;
   achievementName: string;
@@ -88,6 +91,7 @@ interface RecentAchievementData {
 interface HeadToHeadRecord {
   opponent: {
     id: string;
+    slug: string;
     displayName: string;
     elo: number;
     avatarUrl: string | null;
